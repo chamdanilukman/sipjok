@@ -61,7 +61,7 @@ const useClassSchedule = () => {
   /**
    * Create a new schedule
    */
-  const createSchedule = useCallback(async (scheduleData) => {
+  const createSchedule = useCallback(async (userId, scheduleData) => {
     setLoading(true)
     setError(null)
     try {

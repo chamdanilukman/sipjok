@@ -91,7 +91,10 @@ const useTeacherProfile = () => {
     }
   }, [])
 
-  return { profile, setProfile, loading, error, loadProfile, createProfile, updateProfile, uploadProfilePhoto, deleteProfilePhoto }
+  // Nama lama yang dipakai halaman profil & ProfileContext: (userId, data)
+  const saveProfile = useCallback(async (userId, profileData) => updateProfile(profileData || {}), [updateProfile])
+
+  return { profile, setProfile, loading, error, loadProfile, createProfile, updateProfile, saveProfile, uploadProfilePhoto, deleteProfilePhoto }
 }
 
 export default useTeacherProfile

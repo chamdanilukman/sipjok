@@ -7,6 +7,9 @@ const TOKEN_KEY = 'sipjok_token';
 class ApiClient {
   private baseURL: string;
 
+  // Endpoints reachable without a session — the token guard must not block them
+  private static PUBLIC_ENDPOINTS = ['/auth/login', '/health'];
+
   constructor() {
     // Use relative URL for API calls (same origin)
     this.baseURL = '/api';
@@ -42,9 +45,10 @@ class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
+    const isPublic = ApiClient.PUBLIC_ENDPOINTS.some((e) => endpoint.startsWith(e));
     const token = this.getToken();
 
-    if (!token) {
+    if (!token && !isPublic) {
       throw new Error('Not authenticated. Please log in.');
     }
 
@@ -54,7 +58,7 @@ class ApiClient {
       ...options,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         ...options.headers,
       },
     });

@@ -21,7 +21,7 @@ const useTeachingJournal = () => {
     }
   }, [])
 
-  const createJournal = useCallback(async (journalData) => {
+  const createJournal = useCallback(async (userId, journalData) => {
     setLoading(true)
     setError(null)
     try {
@@ -65,7 +65,26 @@ const useTeachingJournal = () => {
     }
   }, [])
 
-  return { journals, setJournals, loading, error, loadJournals, createJournal, updateJournal, deleteJournal }
+  // Laporan: seluruh jurnal dalam rentang tanggal (inklusif)
+  const loadJournalsByDateRange = useCallback(async (userId, startDate, endDate) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const all = await api.get('/journals')
+      const rows = (all || []).filter((j) => {
+        const d = String(j.tanggal || '').slice(0, 10)
+        return (!startDate || d >= startDate) && (!endDate || d <= endDate)
+      })
+      return rows
+    } catch (err) {
+      setError(err.message)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  return { journals, setJournals, loading, error, loadJournals, loadJournalsByDateRange, createJournal, updateJournal, deleteJournal }
 }
 
 export default useTeachingJournal

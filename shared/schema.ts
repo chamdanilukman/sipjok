@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, decimal, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, decimal, boolean, date, jsonb } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -63,7 +63,7 @@ export const classes = pgTable("classes", {
   teacher_id: varchar("teacher_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   grade: varchar("grade", { length: 10 }).notNull(),
-  academic_year: varchar("academic_year", { length: 20 }).notNull(),
+  academic_year: varchar("academic_year", { length: 20 }),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -108,9 +108,12 @@ export const classSchedules = pgTable("class_schedules", {
   id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
   teacher_id: varchar("teacher_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
   class_id: varchar("class_id", { length: 255 }).notNull().references(() => classes.id, { onDelete: "cascade" }),
-  day: varchar("day", { length: 20 }).notNull(), // Senin, Selasa, etc.
-  start_time: varchar("start_time", { length: 10 }).notNull(), // HH:MM format
-  end_time: varchar("end_time", { length: 10 }).notNull(), // HH:MM format
+  subject: varchar("subject", { length: 50 }),
+  day_of_week: integer("day_of_week").notNull(), // 0=Senin ... 6=Minggu
+  time_start: varchar("time_start", { length: 10 }).notNull(), // HH:MM
+  time_end: varchar("time_end", { length: 10 }).notNull(), // HH:MM
+  room: varchar("room", { length: 100 }),
+  notes: text("notes"),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -133,7 +136,7 @@ export const teachingJournal = pgTable("teaching_journal", {
   id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
   teacher_id: varchar("teacher_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
   class_id: varchar("class_id", { length: 255 }).notNull().references(() => classes.id, { onDelete: "cascade" }),
-  tanggal: timestamp("tanggal").notNull(),
+  tanggal: date("tanggal").notNull(),
   materi: text("materi").notNull(),
   kegiatan: text("kegiatan"),
   catatan: text("catatan"),
@@ -159,7 +162,7 @@ export const studentAttendance = pgTable("student_attendance", {
   id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
   student_id: varchar("student_id", { length: 255 }).notNull().references(() => students.id, { onDelete: "cascade" }),
   class_id: varchar("class_id", { length: 255 }).notNull().references(() => classes.id, { onDelete: "cascade" }),
-  tanggal: timestamp("tanggal").notNull(),
+  tanggal: date("tanggal").notNull(),
   status: varchar("status", { length: 20 }).notNull(), // Hadir, Sakit, Izin, Alpa
   notes: text("notes"),
   created_at: timestamp("created_at").defaultNow().notNull(),
@@ -203,6 +206,8 @@ export const modulAjar = pgTable("modul_ajar", {
   file_url: text("file_url"),
   file_name: text("file_name"),
   file_type: text("file_type"),
+  status: varchar("status", { length: 20 }).notNull().default("draft"), // draft | approved
+  data: jsonb("data"), // payload lengkap wizard Modul Ajar (bentuk asli UI)
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -221,12 +226,13 @@ export const atpIntracurricular = pgTable("atp_intracurricular", {
   id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
   teacher_id: varchar("teacher_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
   judul: text("judul").notNull(),
+  mata_pelajaran: varchar("mata_pelajaran", { length: 50 }),
   fase: varchar("fase", { length: 10 }),
   kelas: varchar("kelas", { length: 50 }),
   elemen: text("elemen"),
   capaian_pembelajaran: text("capaian_pembelajaran"),
-  tujuan_pembelajaran: text("tujuan_pembelajaran"),
-  alokasi_waktu: varchar("alokasi_waktu", { length: 50 }),
+  tujuan_pembelajaran: jsonb("tujuan_pembelajaran"), // [{id, text}]
+  alokasi_waktu: integer("alokasi_waktu"),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -245,9 +251,12 @@ export const kktp = pgTable("kktp", {
   id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
   teacher_id: varchar("teacher_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
   class_id: varchar("class_id", { length: 255 }),
-  elemen: text("elemen").notNull(),
+  subject: varchar("subject", { length: 50 }).notNull(),
+  fase: varchar("fase", { length: 10 }),
+  kelas: varchar("kelas", { length: 10 }),
   tujuan_pembelajaran: text("tujuan_pembelajaran").notNull(),
-  kriteria_ketuntasan: integer("kriteria_ketuntasan").notNull(), // Percentage
+  kktp_percentage: integer("kktp_percentage").notNull(), // batas ketuntasan (%)
+  indicators: jsonb("indicators"), // [{level, min_score, max_score, description}]
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -269,8 +278,15 @@ export const examQuestions = pgTable("exam_questions", {
   question_type: varchar("question_type", { length: 50 }).notNull(), // Multiple Choice, Essay, etc.
   options: text("options"), // JSON string for multiple choice options
   correct_answer: text("correct_answer"),
+  answer_key: text("answer_key"), // pembahasan/jawaban untuk soal essay
   difficulty: varchar("difficulty", { length: 20 }), // Easy, Medium, Hard
   topic: text("topic"),
+  title: text("title"),
+  subject: text("subject"),
+  fase: varchar("fase", { length: 10 }),
+  kelas: varchar("kelas", { length: 10 }),
+  points: integer("points"),
+  tags: jsonb("tags"),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -290,8 +306,11 @@ export const studentGrades = pgTable("student_grades", {
   teacher_id: varchar("teacher_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
   student_id: varchar("student_id", { length: 255 }).notNull().references(() => students.id, { onDelete: "cascade" }),
   class_id: varchar("class_id", { length: 255 }).notNull().references(() => classes.id, { onDelete: "cascade" }),
-  assessment_type: varchar("assessment_type", { length: 50 }).notNull(), // Formatif, Sumatif, etc.
-  assessment_name: text("assessment_name").notNull(),
+  assessment_type: varchar("assessment_type", { length: 50 }).notNull(), // daily_test, midterm, final, practical, project, attitude
+  assessment_title: text("assessment_title").notNull(),
+  assessment_date: date("assessment_date"),
+  subject: varchar("subject", { length: 50 }),
+  kktp_id: varchar("kktp_id", { length: 255 }),
   score: decimal("score", { precision: 5, scale: 2 }).notNull(),
   max_score: decimal("max_score", { precision: 5, scale: 2 }).notNull(),
   percentage: decimal("percentage", { precision: 5, scale: 2 }),
@@ -343,11 +362,14 @@ export const curriculumDocumentsRelations = relations(curriculumDocuments, ({ on
 export const calendarEvents = pgTable("calendar_events", {
   id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
   user_id: varchar("user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
-  title: text("title").notNull(),
-  event_type: varchar("event_type", { length: 50 }), // Libur, Ujian, Kegiatan, etc.
-  start_date: timestamp("start_date").notNull(),
-  end_date: timestamp("end_date"),
-  description: text("description"),
+  judul: text("judul").notNull(),
+  kategori: varchar("kategori", { length: 50 }).default("kegiatan"), // pembelajaran, ujian, kegiatan, libur, kurikulum
+  tanggal_mulai: date("tanggal_mulai").notNull(),
+  tanggal_selesai: date("tanggal_selesai"),
+  jam_mulai: varchar("jam_mulai", { length: 10 }),
+  jam_selesai: varchar("jam_selesai", { length: 10 }),
+  lokasi: text("lokasi"),
+  deskripsi: text("deskripsi"),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -372,6 +394,7 @@ export const selectUserSchema = createSelectSchema(users);
 
 // Teacher Profile
 export const insertTeacherProfileSchema = createInsertSchema(teacherProfile).omit({
+  user_id: true,
   id: true,
   created_at: true,
   updated_at: true,
@@ -380,6 +403,7 @@ export const selectTeacherProfileSchema = createSelectSchema(teacherProfile);
 
 // Classes
 export const insertClassSchema = createInsertSchema(classes).omit({
+  teacher_id: true,
   id: true,
   created_at: true,
   updated_at: true,
@@ -396,6 +420,7 @@ export const selectStudentSchema = createSelectSchema(students);
 
 // Class Schedules
 export const insertClassScheduleSchema = createInsertSchema(classSchedules).omit({
+  teacher_id: true,
   id: true,
   created_at: true,
   updated_at: true,
@@ -404,6 +429,7 @@ export const selectClassScheduleSchema = createSelectSchema(classSchedules);
 
 // Teaching Journal
 export const insertTeachingJournalSchema = createInsertSchema(teachingJournal).omit({
+  teacher_id: true,
   id: true,
   created_at: true,
   updated_at: true,
@@ -420,6 +446,7 @@ export const selectStudentAttendanceSchema = createSelectSchema(studentAttendanc
 
 // Modul Ajar
 export const insertModulAjarSchema = createInsertSchema(modulAjar).omit({
+  teacher_id: true,
   id: true,
   created_at: true,
   updated_at: true,
@@ -428,6 +455,7 @@ export const selectModulAjarSchema = createSelectSchema(modulAjar);
 
 // ATP Intracurricular
 export const insertAtpIntracurricularSchema = createInsertSchema(atpIntracurricular).omit({
+  teacher_id: true,
   id: true,
   created_at: true,
   updated_at: true,
@@ -436,6 +464,7 @@ export const selectAtpIntracurricularSchema = createSelectSchema(atpIntracurricu
 
 // KKTP
 export const insertKktpSchema = createInsertSchema(kktp).omit({
+  teacher_id: true,
   id: true,
   created_at: true,
   updated_at: true,
@@ -444,6 +473,7 @@ export const selectKktpSchema = createSelectSchema(kktp);
 
 // Exam Questions
 export const insertExamQuestionSchema = createInsertSchema(examQuestions).omit({
+  teacher_id: true,
   id: true,
   created_at: true,
   updated_at: true,
@@ -451,7 +481,12 @@ export const insertExamQuestionSchema = createInsertSchema(examQuestions).omit({
 export const selectExamQuestionSchema = createSelectSchema(examQuestions);
 
 // Student Grades
-export const insertStudentGradeSchema = createInsertSchema(studentGrades).omit({
+// score/max_score numeric — terima angka maupun string dari client
+export const insertStudentGradeSchema = createInsertSchema(studentGrades, {
+  score: z.coerce.string(),
+  max_score: z.coerce.string(),
+}).omit({
+  teacher_id: true,
   id: true,
   created_at: true,
   updated_at: true,
@@ -460,6 +495,7 @@ export const selectStudentGradeSchema = createSelectSchema(studentGrades);
 
 // Curriculum Documents
 export const insertCurriculumDocumentSchema = createInsertSchema(curriculumDocuments).omit({
+  user_id: true,
   id: true,
   created_at: true,
   updated_at: true,
@@ -468,6 +504,7 @@ export const selectCurriculumDocumentSchema = createSelectSchema(curriculumDocum
 
 // Calendar Events
 export const insertCalendarEventSchema = createInsertSchema(calendarEvents).omit({
+  user_id: true,
   id: true,
   created_at: true,
   updated_at: true,

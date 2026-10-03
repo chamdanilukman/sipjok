@@ -12,7 +12,7 @@ CREATE INDEX IF NOT EXISTS idx_students_nis ON students(nis);
 -- Class Schedules indexes
 CREATE INDEX IF NOT EXISTS idx_class_schedules_teacher_id ON class_schedules(teacher_id);
 CREATE INDEX IF NOT EXISTS idx_class_schedules_class_id ON class_schedules(class_id);
-CREATE INDEX IF NOT EXISTS idx_class_schedules_day ON class_schedules(day);
+CREATE INDEX IF NOT EXISTS idx_class_schedules_day_of_week ON class_schedules(day_of_week);
 
 -- Teaching Journal indexes
 CREATE INDEX IF NOT EXISTS idx_teaching_journal_teacher_id ON teaching_journal(teacher_id);
@@ -56,8 +56,8 @@ CREATE INDEX IF NOT EXISTS idx_curriculum_documents_type ON curriculum_documents
 
 -- Calendar Events indexes
 CREATE INDEX IF NOT EXISTS idx_calendar_events_user_id ON calendar_events(user_id);
-CREATE INDEX IF NOT EXISTS idx_calendar_events_start_date ON calendar_events(start_date);
-CREATE INDEX IF NOT EXISTS idx_calendar_events_type ON calendar_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_calendar_events_tanggal_mulai ON calendar_events(tanggal_mulai);
+CREATE INDEX IF NOT EXISTS idx_calendar_events_kategori ON calendar_events(kategori);
 
 -- Teacher Profile index
 CREATE INDEX IF NOT EXISTS idx_teacher_profile_user_id ON teacher_profile(user_id);

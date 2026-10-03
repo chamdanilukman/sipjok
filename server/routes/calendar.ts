@@ -12,7 +12,7 @@ router.get('/', authenticateUser, async (req, res, next) => {
     const offset = parseInt(req.query.offset as string) || undefined;
     const events = await db.query.calendarEvents.findMany({
       where: eq(calendarEvents.user_id, req.user!.id),
-      orderBy: [desc(calendarEvents.start_date)],
+      orderBy: [desc(calendarEvents.tanggal_mulai)],
       limit,
       offset,
     });
@@ -42,13 +42,13 @@ router.post('/', authenticateUser, async (req, res, next) => {
     if (!parsed.success) {
       return res.status(400).json({ error: 'Validation Error', details: parsed.error.flatten() });
     }
-    const { title, event_type, start_date, end_date, description } = parsed.data;
-    if (!title || !start_date) {
+    const { judul, kategori, tanggal_mulai, tanggal_selesai, jam_mulai, jam_selesai, lokasi, deskripsi } = parsed.data;
+    if (!judul || !tanggal_mulai) {
       return res.status(400).json({ error: 'Bad Request', message: 'Missing required fields' });
     }
 
     const [newEvent] = await db.insert(calendarEvents)
-      .values({ user_id: req.user!.id, title, event_type, start_date, end_date, description })
+      .values({ user_id: req.user!.id, judul, kategori, tanggal_mulai, tanggal_selesai, jam_mulai, jam_selesai, lokasi, deskripsi })
       .returning();
     res.status(201).json(newEvent);
   } catch (error) {
@@ -62,9 +62,9 @@ router.put('/:id', authenticateUser, async (req, res, next) => {
     if (!parsed.success) {
       return res.status(400).json({ error: 'Validation Error', details: parsed.error.flatten() });
     }
-    const { title, event_type, start_date, end_date, description } = parsed.data;
+    const { judul, kategori, tanggal_mulai, tanggal_selesai, jam_mulai, jam_selesai, lokasi, deskripsi } = parsed.data;
     const [updated] = await db.update(calendarEvents)
-      .set({ title, event_type, start_date, end_date, description, updated_at: new Date() })
+      .set({ judul, kategori, tanggal_mulai, tanggal_selesai, jam_mulai, jam_selesai, lokasi, deskripsi, updated_at: new Date() })
       .where(and(eq(calendarEvents.id, req.params.id), eq(calendarEvents.user_id, req.user!.id)))
       .returning();
     if (!updated) {

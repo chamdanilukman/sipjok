@@ -21,7 +21,7 @@ const useATP = () => {
     }
   }, [])
 
-  const createATP = useCallback(async (atpData) => {
+  const createATP = useCallback(async (userId, atpData) => {
     setLoading(true)
     setError(null)
     try {
@@ -65,7 +65,46 @@ const useATP = () => {
     }
   }, [])
 
-  return { atpList, setAtpList, loading, error, loadATP, createATP, updateATP, deleteATP }
+  const searchATP = useCallback(async (userId, keyword) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await api.get('/atp')
+      const q = String(keyword || '').toLowerCase()
+      const rows = (data || []).filter((a) =>
+        `${a.judul || ''} ${a.capaian_pembelajaran || ''}`.toLowerCase().includes(q)
+      )
+      setAtpList(rows)
+      return rows
+    } catch (err) {
+      setError(err.message)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const filterATP = useCallback(async (userId, filters = {}) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await api.get('/atp')
+      const rows = (data || []).filter((a) =>
+        (!filters.fase || a.fase === filters.fase) &&
+        (!filters.kelas || String(a.kelas) === String(filters.kelas)) &&
+        (!filters.elemen || a.elemen === filters.elemen)
+      )
+      setAtpList(rows)
+      return rows
+    } catch (err) {
+      setError(err.message)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  return { atpList, setAtpList, loading, error, loadATP, createATP, updateATP, deleteATP, searchATP, filterATP }
 }
 
 export default useATP

@@ -16,6 +16,11 @@ export const ProfileProvider = ({ children }) => {
   // Initialize user and load profile on mount
   useEffect(() => {
     const initializeUser = async () => {
+      // Belum ada sesi (mis. di halaman login) — jangan panggil /auth/me
+      if (!api.isAuthenticated()) {
+        setIsLoading(false)
+        return
+      }
       try {
         const user = await api.get('/auth/me')
         if (user && user.id) {

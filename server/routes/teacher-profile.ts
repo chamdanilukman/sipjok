@@ -8,11 +8,18 @@ const router = Router();
 
 router.get('/', authenticateUser, async (req, res, next) => {
   try {
-    const profile = await db.query.teacherProfile.findFirst({
+    let profile = await db.query.teacherProfile.findFirst({
       where: eq(teacherProfile.user_id, req.user!.id),
     });
     if (!profile) {
-      return res.status(404).json({ error: 'Not Found', message: 'Profile not found' });
+      // First visit of a fresh account — give it an empty profile instead of 404
+      const [created] = await db.insert(teacherProfile)
+        .values({ user_id: req.user!.id, name: req.user!.email || 'Guru PJOK' })
+        .onConflictDoNothing()
+        .returning();
+      profile = created ?? (await db.query.teacherProfile.findFirst({
+        where: eq(teacherProfile.user_id, req.user!.id),
+      }));
     }
     res.json(profile);
   } catch (error) {
@@ -61,7 +68,11 @@ router.put('/', authenticateUser, async (req, res, next) => {
       .where(eq(teacherProfile.user_id, req.user!.id))
       .returning();
     if (!updated) {
-      return res.status(404).json({ error: 'Not Found', message: 'Profile not found' });
+      // No row yet — upsert so the very first save from a fresh account works
+      const [created] = await db.insert(teacherProfile)
+        .values({ user_id: req.user!.id, name: name || req.user!.email || 'Guru PJOK', nip, school_name, school_address, phone, profile_photo_url, profile_photo_path })
+        .returning();
+      return res.json(created);
     }
     res.json(updated);
   } catch (error) {

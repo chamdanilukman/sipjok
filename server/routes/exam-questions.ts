@@ -42,13 +42,13 @@ router.post('/', authenticateUser, async (req, res, next) => {
     if (!parsed.success) {
       return res.status(400).json({ error: 'Validation Error', details: parsed.error.flatten() });
     }
-    const { question_text, question_type, options, correct_answer, difficulty, topic } = parsed.data;
+    const { question_text, question_type, options, correct_answer, answer_key, difficulty, topic, title, subject, fase, kelas, points, tags } = parsed.data;
     if (!question_text || !question_type) {
       return res.status(400).json({ error: 'Bad Request', message: 'Missing required fields' });
     }
 
     const [newQuestion] = await db.insert(examQuestions)
-      .values({ teacher_id: req.user!.id, question_text, question_type, options, correct_answer, difficulty, topic })
+      .values({ teacher_id: req.user!.id, question_text, question_type, options, correct_answer, answer_key, difficulty, topic, title, subject, fase, kelas, points, tags })
       .returning();
     res.status(201).json(newQuestion);
   } catch (error) {
@@ -62,9 +62,9 @@ router.put('/:id', authenticateUser, async (req, res, next) => {
     if (!parsed.success) {
       return res.status(400).json({ error: 'Validation Error', details: parsed.error.flatten() });
     }
-    const { question_text, question_type, options, correct_answer, difficulty, topic } = parsed.data;
+    const { question_text, question_type, options, correct_answer, answer_key, difficulty, topic, title, subject, fase, kelas, points, tags } = parsed.data;
     const [updated] = await db.update(examQuestions)
-      .set({ question_text, question_type, options, correct_answer, difficulty, topic, updated_at: new Date() })
+      .set({ question_text, question_type, options, correct_answer, answer_key, difficulty, topic, title, subject, fase, kelas, points, tags, updated_at: new Date() })
       .where(and(eq(examQuestions.id, req.params.id), eq(examQuestions.teacher_id, req.user!.id)))
       .returning();
     if (!updated) {

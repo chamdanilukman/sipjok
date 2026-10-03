@@ -240,7 +240,7 @@ export const AcademicCalendar = () => {
                 <div
                   key={event.id}
                   onClick={(e) => handleEventClick(event, e)}
-                  className={`text-xs p-1 rounded cursor-pointer truncate bg-${catInfo.color}-100 text-${catInfo.color}-800 hover:opacity-80`}
+                  className={`text-xs p-1 rounded cursor-pointer truncate ${catInfo.badge} hover:opacity-80`}
                   title={event.judul}
                 >
                   {event.judul}
@@ -344,7 +344,7 @@ export const AcademicCalendar = () => {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {Object.entries(CATEGORIES).map(([key, cat]) => (
             <div key={key} className="flex items-center gap-2">
-              <div className={`w-4 h-4 rounded bg-${cat.color}-500`}></div>
+              <div className={`w-4 h-4 rounded ${cat.dot}`}></div>
               <span className="text-sm text-gray-700">{cat.label}</span>
             </div>
           ))}

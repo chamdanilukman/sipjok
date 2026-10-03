@@ -42,13 +42,13 @@ router.post('/', authenticateUser, async (req, res, next) => {
     if (!parsed.success) {
       return res.status(400).json({ error: 'Validation Error', details: parsed.error.flatten() });
     }
-    const { judul, fase, kelas, elemen, capaian_pembelajaran, tujuan_pembelajaran, alokasi_waktu } = parsed.data;
+    const { judul, mata_pelajaran, fase, kelas, elemen, capaian_pembelajaran, tujuan_pembelajaran, alokasi_waktu } = parsed.data;
     if (!judul) {
       return res.status(400).json({ error: 'Bad Request', message: 'Missing required field: judul' });
     }
 
     const [newAtp] = await db.insert(atpIntracurricular)
-      .values({ teacher_id: req.user!.id, judul, fase, kelas, elemen, capaian_pembelajaran, tujuan_pembelajaran, alokasi_waktu })
+      .values({ teacher_id: req.user!.id, judul, mata_pelajaran, fase, kelas, elemen, capaian_pembelajaran, tujuan_pembelajaran, alokasi_waktu })
       .returning();
     res.status(201).json(newAtp);
   } catch (error) {
@@ -62,9 +62,9 @@ router.put('/:id', authenticateUser, async (req, res, next) => {
     if (!parsed.success) {
       return res.status(400).json({ error: 'Validation Error', details: parsed.error.flatten() });
     }
-    const { judul, fase, kelas, elemen, capaian_pembelajaran, tujuan_pembelajaran, alokasi_waktu } = parsed.data;
+    const { judul, mata_pelajaran, fase, kelas, elemen, capaian_pembelajaran, tujuan_pembelajaran, alokasi_waktu } = parsed.data;
     const [updated] = await db.update(atpIntracurricular)
-      .set({ judul, fase, kelas, elemen, capaian_pembelajaran, tujuan_pembelajaran, alokasi_waktu, updated_at: new Date() })
+      .set({ judul, mata_pelajaran, fase, kelas, elemen, capaian_pembelajaran, tujuan_pembelajaran, alokasi_waktu, updated_at: new Date() })
       .where(and(eq(atpIntracurricular.id, req.params.id), eq(atpIntracurricular.teacher_id, req.user!.id)))
       .returning();
     if (!updated) {

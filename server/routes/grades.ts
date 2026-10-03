@@ -56,10 +56,11 @@ router.post('/', authenticateUser, async (req, res, next) => {
     if (!parsed.success) {
       return res.status(400).json({ error: 'Validation Error', details: parsed.error.flatten() });
     }
-    const { student_id, class_id, assessment_type, assessment_name, score, max_score, percentage, is_passed, notes } = parsed.data;
-    if (!student_id || !class_id || !assessment_type || !assessment_name || score === undefined || max_score === undefined) {
+    const { student_id, class_id, subject, assessment_type, assessment_title, assessment_date, score, max_score, kktp_id, is_passed, notes } = parsed.data;
+    if (!student_id || !class_id || !assessment_type || !assessment_title || score === undefined || max_score === undefined) {
       return res.status(400).json({ error: 'Bad Request', message: 'Missing required fields' });
     }
+    const percentage = Number(max_score) > 0 ? Math.round((Number(score) / Number(max_score)) * 10000) / 100 : null;
 
     const classData = await db.query.classes.findFirst({
       where: and(eq(classes.id, class_id), eq(classes.teacher_id, req.user!.id)),
@@ -69,7 +70,7 @@ router.post('/', authenticateUser, async (req, res, next) => {
     }
 
     const [newGrade] = await db.insert(studentGrades)
-      .values({ teacher_id: req.user!.id, student_id, class_id, assessment_type, assessment_name, score, max_score, percentage, is_passed, notes })
+      .values({ teacher_id: req.user!.id, student_id, class_id, subject, assessment_type, assessment_title, assessment_date, score: String(score), max_score: String(max_score), percentage: percentage != null ? String(percentage) : null, kktp_id, is_passed, notes })
       .returning();
     res.status(201).json(newGrade);
   } catch (error) {
@@ -91,9 +92,24 @@ router.put('/:id', authenticateUser, async (req, res, next) => {
     if (!parsed.success) {
       return res.status(400).json({ error: 'Validation Error', details: parsed.error.flatten() });
     }
-    const { assessment_type, assessment_name, score, max_score, percentage, is_passed, notes } = parsed.data;
+    const { subject, assessment_type, assessment_title, assessment_date, score, max_score, kktp_id, is_passed, notes } = parsed.data;
+    const percentage = score !== undefined && max_score !== undefined && Number(max_score) > 0
+      ? Math.round((Number(score) / Number(max_score)) * 10000) / 100
+      : undefined;
     const [updated] = await db.update(studentGrades)
-      .set({ assessment_type, assessment_name, score, max_score, percentage, is_passed, notes, updated_at: new Date() })
+      .set({
+        subject,
+        assessment_type,
+        assessment_title,
+        assessment_date,
+        score: score !== undefined ? String(score) : undefined,
+        max_score: max_score !== undefined ? String(max_score) : undefined,
+        percentage: percentage !== undefined && percentage !== null ? String(percentage) : undefined,
+        kktp_id,
+        is_passed,
+        notes,
+        updated_at: new Date(),
+      })
       .where(eq(studentGrades.id, req.params.id))
       .returning();
     res.json(updated);

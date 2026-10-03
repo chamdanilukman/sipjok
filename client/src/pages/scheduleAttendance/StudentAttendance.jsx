@@ -63,7 +63,8 @@ export const StudentAttendance = () => {
   const [studentFormData, setStudentFormData] = useState({
     class_id: '',
     name: '',
-    student_number: '',
+    nis: '',
+    gender: '',
   })
   const [editingStudentId, setEditingStudentId] = useState(null)
   const [studentModalClassId, setStudentModalClassId] = useState('')
@@ -235,7 +236,8 @@ export const StudentAttendance = () => {
       setStudentFormData({
         class_id: studentData.class_id,
         name: studentData.name,
-        student_number: studentData.student_number,
+        nis: studentData.nis || '',
+        gender: studentData.gender || '',
       })
       setStudentModalClassId(studentData.class_id)
     } else {
@@ -243,7 +245,8 @@ export const StudentAttendance = () => {
       setStudentFormData({
         class_id: classes.length > 0 ? classes[0].id : '',
         name: '',
-        student_number: '',
+        nis: '',
+        gender: '',
       })
       setStudentModalClassId(classes.length > 0 ? classes[0].id : '')
     }
@@ -265,8 +268,8 @@ export const StudentAttendance = () => {
 
   const handleSaveStudent = async () => {
     try {
-      if (!studentFormData.class_id || !studentFormData.name || !studentFormData.student_number) {
-        showNotification('Semua field harus diisi', 'error')
+      if (!studentFormData.class_id || !studentFormData.name || !studentFormData.gender) {
+        showNotification('Kelas, nama, dan jenis kelamin wajib diisi', 'error')
         return
       }
 
@@ -358,16 +361,20 @@ export const StudentAttendance = () => {
             }
           }
 
+          let gender = ''
+          if (jenisKelamin === 'Laki-laki' || jenisKelamin === 'L') gender = 'L'
+          if (jenisKelamin === 'Perempuan' || jenisKelamin === 'P') gender = 'P'
+          if (!gender) {
+            errors.push(`Jenis kelamin tidak valid untuk siswa ${getValue('nama')}`)
+            errorCount++
+            continue
+          }
+
           await createStudent({
-            teacher_id: userId,
             class_id: targetClass.id,
             name: getValue('nama'),
-            nis: getValue('nis'),
-            nisn: getValue('nisn'),
-            tempat_lahir: getValue('tempat lahir') || getValue('tempat_lahir'),
-            tanggal_lahir: getValue('tanggal lahir') || getValue('tanggal_lahir'),
-            jenis_kelamin: jenisKelamin,
-            agama: getValue('agama'),
+            nis: getValue('nis') || null,
+            gender,
           })
           successCount++
         } catch (err) {
@@ -899,12 +906,12 @@ export const StudentAttendance = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nomor Induk *
+                    Nomor Induk
                   </label>
                   <input
                     type="text"
-                    value={studentFormData.student_number}
-                    onChange={(e) => setStudentFormData({ ...studentFormData, student_number: e.target.value })}
+                    value={studentFormData.nis}
+                    onChange={(e) => setStudentFormData({ ...studentFormData, nis: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="001"
                   />
@@ -920,6 +927,20 @@ export const StudentAttendance = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Nama Siswa"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Jenis Kelamin *
+                  </label>
+                  <select
+                    value={studentFormData.gender}
+                    onChange={(e) => setStudentFormData({ ...studentFormData, gender: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Pilih</option>
+                    <option value="L">Laki-laki</option>
+                    <option value="P">Perempuan</option>
+                  </select>
                 </div>
               </div>
               <button
@@ -945,7 +966,7 @@ export const StudentAttendance = () => {
                   <tbody>
                     {studentsList.map((student) => (
                       <tr key={student.id} className="border-b hover:bg-gray-50">
-                        <td className="px-4 py-3">{student.student_number}</td>
+                        <td className="px-4 py-3">{student.nis || '-'}</td>
                         <td className="px-4 py-3">{student.name}</td>
                         <td className="px-4 py-3 text-center">
                           <button

@@ -1,6 +1,9 @@
 import { useState, useCallback } from 'react'
 import { api } from '../lib/api'
 
+// Kolom grade bertipe varchar — form halaman mengirim angka
+const normalize = (c) => (c && c.grade != null ? { ...c, grade: String(c.grade) } : c)
+
 const useClasses = () => {
   const [classes, setClasses] = useState([])
   const [loading, setLoading] = useState(false)
@@ -41,6 +44,7 @@ const useClasses = () => {
 
   // Create a new class
   const createClass = useCallback(async (classData) => {
+    classData = normalize(classData);
     setLoading(true)
     setError(null)
     try {
@@ -58,6 +62,7 @@ const useClasses = () => {
 
   // Update a class
   const updateClass = useCallback(async (classId, updates) => {
+    updates = normalize(updates);
     setLoading(true)
     setError(null)
     try {

@@ -103,9 +103,9 @@ router.post('/', authenticateUser, async (req, res, next) => {
     if (!parsed.success) {
       return res.status(400).json({ error: 'Validation Error', details: parsed.error.flatten() });
     }
-    const { class_id, day, start_time, end_time } = parsed.data;
+    const { class_id, subject, day_of_week, time_start, time_end, room, notes } = parsed.data;
 
-    if (!class_id || !day || !start_time || !end_time) {
+    if (!class_id || day_of_week === undefined || !time_start || !time_end) {
       return res.status(400).json({ error: 'Bad Request', message: 'Missing required fields' });
     }
 
@@ -128,9 +128,12 @@ router.post('/', authenticateUser, async (req, res, next) => {
       .values({
         teacher_id: req.user!.id,
         class_id,
-        day,
-        start_time,
-        end_time,
+        subject,
+        day_of_week,
+        time_start,
+        time_end,
+        room,
+        notes,
       })
       .returning();
 
@@ -150,13 +153,13 @@ router.put('/:id', authenticateUser, async (req, res, next) => {
     if (!parsed.success) {
       return res.status(400).json({ error: 'Validation Error', details: parsed.error.flatten() });
     }
-    const { class_id, day, start_time, end_time } = parsed.data;
+    const { class_id, subject, day_of_week, time_start, time_end, room, notes } = parsed.data;
 
     // Validate required fields
-    if (!day || !start_time || !end_time) {
+    if (day_of_week === undefined || !time_start || !time_end) {
       return res.status(400).json({
         error: 'Bad Request',
-        message: 'Missing required fields: day, start_time, end_time',
+        message: 'Missing required fields: day_of_week, time_start, time_end',
       });
     }
 
@@ -180,9 +183,12 @@ router.put('/:id', authenticateUser, async (req, res, next) => {
     const [updated] = await db.update(classSchedules)
       .set({
         class_id: class_id || undefined,
-        day,
-        start_time,
-        end_time,
+        subject,
+        day_of_week,
+        time_start,
+        time_end,
+        room,
+        notes,
         updated_at: new Date(),
       })
       .where(and(

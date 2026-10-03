@@ -42,13 +42,13 @@ router.post('/', authenticateUser, async (req, res, next) => {
     if (!parsed.success) {
       return res.status(400).json({ error: 'Validation Error', details: parsed.error.flatten() });
     }
-    const { elemen, tujuan_pembelajaran, kriteria_ketuntasan, class_id } = parsed.data;
-    if (!elemen || !tujuan_pembelajaran || !kriteria_ketuntasan) {
+    const { class_id, subject, fase, kelas, tujuan_pembelajaran, kktp_percentage, indicators } = parsed.data;
+    if (!subject || !tujuan_pembelajaran || kktp_percentage === undefined) {
       return res.status(400).json({ error: 'Bad Request', message: 'Missing required fields' });
     }
 
     const [newKktp] = await db.insert(kktp)
-      .values({ teacher_id: req.user!.id, elemen, tujuan_pembelajaran, kriteria_ketuntasan, class_id })
+      .values({ teacher_id: req.user!.id, class_id, subject, fase, kelas, tujuan_pembelajaran, kktp_percentage, indicators })
       .returning();
     res.status(201).json(newKktp);
   } catch (error) {
@@ -62,7 +62,8 @@ router.put('/:id', authenticateUser, async (req, res, next) => {
     if (!parsed.success) {
       return res.status(400).json({ error: 'Validation Error', details: parsed.error.flatten() });
     }
-    const fields = { elemen: parsed.data.elemen, tujuan_pembelajaran: parsed.data.tujuan_pembelajaran, kriteria_ketuntasan: parsed.data.kriteria_ketuntasan, class_id: parsed.data.class_id };
+    const { class_id, subject, fase, kelas, tujuan_pembelajaran, kktp_percentage, indicators } = parsed.data;
+    const fields = { class_id, subject, fase, kelas, tujuan_pembelajaran, kktp_percentage, indicators };
     const [updated] = await db.update(kktp)
       .set({ ...fields, updated_at: new Date() })
       .where(and(eq(kktp.id, req.params.id), eq(kktp.teacher_id, req.user!.id)))
