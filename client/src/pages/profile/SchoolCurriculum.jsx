@@ -87,7 +87,7 @@ export const SchoolCurriculum = () => {
 
   const handleDownload = async (doc) => {
     try {
-      await downloadDocument(doc.file_path, doc.file_name)
+      await downloadDocument(doc.file_url, doc.file_name)
       showNotification(`${doc.file_name} berhasil diunduh`, 'success')
     } catch (err) {
       showNotification(err.message || 'Gagal mengunduh dokumen', 'error')

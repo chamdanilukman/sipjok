@@ -1,0 +1,24 @@
+[Unit]
+Description=SIPJOK - Sistem Informasi PJOK (Express + React)
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=__APP_USER__
+WorkingDirectory=__APP_DIR__
+Environment=NODE_ENV=production
+Environment=PORT=__PORT_APP__
+EnvironmentFile=-__APP_DIR__/.env
+ExecStart=/usr/bin/node dist/index.js
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+
+# Sedikit penguatan
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

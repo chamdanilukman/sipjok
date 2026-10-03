@@ -51,7 +51,47 @@ const useTeacherProfile = () => {
     }
   }, [])
 
-  return { profile, setProfile, loading, error, loadProfile, createProfile, updateProfile }
+  const uploadProfilePhoto = useCallback(async (userId, file) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const result = await api.upload('/uploads', file)
+      const data = await api.put('/teacher-profile', {
+        profile_photo_url: result.url,
+        profile_photo_path: result.path,
+      })
+      setProfile(data)
+      return data
+    } catch (err) {
+      setError(err.message)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const deleteProfilePhoto = useCallback(async (userId, filePath) => {
+    setLoading(true)
+    setError(null)
+    try {
+      if (filePath) {
+        await api.delete(`/uploads?path=${encodeURIComponent(filePath)}`)
+      }
+      const data = await api.put('/teacher-profile', {
+        profile_photo_url: null,
+        profile_photo_path: null,
+      })
+      setProfile(data)
+      return data
+    } catch (err) {
+      setError(err.message)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  return { profile, setProfile, loading, error, loadProfile, createProfile, updateProfile, uploadProfilePhoto, deleteProfilePhoto }
 }
 
 export default useTeacherProfile

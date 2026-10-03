@@ -1,22 +1,41 @@
 import { Request, Response, NextFunction } from 'express';
-import { supabaseAdmin } from '../supabase';
+import jwt from 'jsonwebtoken';
+
+export interface AuthUser {
+  id: string;
+  email?: string;
+}
 
 // Extend Express Request type to include user
 declare global {
   namespace Express {
     interface Request {
-      user?: {
-        id: string;
-        email?: string;
-        [key: string]: any;
-      };
+      user?: AuthUser;
     }
   }
 }
 
+function getSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET environment variable is not set');
+  }
+  return secret;
+}
+
+function extractBearerToken(req: Request): string | null {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return null;
+  }
+  const token = authHeader.replace('Bearer ', '').trim();
+  return token || null;
+}
+
 /**
  * Authentication middleware
- * Verifies Supabase JWT token and attaches user to request
+ * Verifies the internal JWT issued by POST /api/auth/login and attaches
+ * req.user = { id, email } — the same shape every API route already expects.
  */
 export async function authenticateUser(
   req: Request,
@@ -24,76 +43,51 @@ export async function authenticateUser(
   next: NextFunction
 ): Promise<void> {
   try {
-    // Extract token from Authorization header
-    const authHeader = req.headers.authorization;
-    
-    if (!authHeader) {
-      res.status(401).json({ 
-        error: 'Unauthorized',
-        message: 'No authorization header provided' 
-      });
-      return;
-    }
-
-    // Check if it's a Bearer token
-    if (!authHeader.startsWith('Bearer ')) {
-      res.status(401).json({ 
-        error: 'Unauthorized',
-        message: 'Invalid authorization header format. Expected: Bearer <token>' 
-      });
-      return;
-    }
-
-    // Extract the token
-    const token = authHeader.replace('Bearer ', '');
+    const token = extractBearerToken(req);
 
     if (!token) {
-      res.status(401).json({ 
+      res.status(401).json({
         error: 'Unauthorized',
-        message: 'No token provided' 
+        message: 'No authorization header provided. Expected: Bearer <token>',
       });
       return;
     }
 
-    // Verify token with Supabase
-    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
-
-    if (error) {
-      console.error('Token verification error:', error.message);
-      res.status(401).json({ 
+    let payload: jwt.JwtPayload;
+    try {
+      payload = jwt.verify(token, getSecret()) as jwt.JwtPayload;
+    } catch {
+      res.status(401).json({
         error: 'Unauthorized',
-        message: 'Invalid or expired token' 
+        message: 'Invalid or expired token',
       });
       return;
     }
 
-    if (!user) {
-      res.status(401).json({ 
+    if (!payload.sub) {
+      res.status(401).json({
         error: 'Unauthorized',
-        message: 'User not found' 
+        message: 'Invalid token payload',
       });
       return;
     }
 
-    // Attach user to request object
     req.user = {
-      id: user.id,
-      email: user.email,
-      ...user.user_metadata,
+      id: payload.sub as string,
+      email: (payload.username as string) || undefined,
     };
 
     // Log authentication (only in development)
     if (process.env.NODE_ENV === 'development') {
-      console.log(`✅ Authenticated user: ${user.email} (${user.id})`);
+      console.log(`✅ Authenticated user: ${req.user.email} (${req.user.id})`);
     }
 
-    // Continue to next middleware/route handler
     next();
   } catch (error) {
     console.error('Authentication middleware error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Authentication failed' 
+      message: 'Authentication failed',
     });
   }
 }
@@ -107,29 +101,21 @@ export async function optionalAuth(
   res: Response,
   next: NextFunction
 ): Promise<void> {
+  const token = extractBearerToken(req);
+  if (!token) {
+    next();
+    return;
+  }
   try {
-    const authHeader = req.headers.authorization;
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      // No token provided, continue without user
-      next();
-      return;
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user } } = await supabaseAdmin.auth.getUser(token);
-
-    if (user) {
+    const payload = jwt.verify(token, getSecret()) as jwt.JwtPayload;
+    if (payload.sub) {
       req.user = {
-        id: user.id,
-        email: user.email,
-        ...user.user_metadata,
+        id: payload.sub as string,
+        email: (payload.username as string) || undefined,
       };
     }
-
-    next();
-  } catch (error) {
-    // Ignore errors in optional auth
-    next();
+  } catch {
+    // Ignore invalid tokens in optional auth
   }
+  next();
 }

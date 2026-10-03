@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
-import supabase from '../../config/supabase'
+import { api } from '../../lib/api'
 
 export const UploadModulAjarModal = ({ isOpen, onClose, onUpload, atpList, teacherId, teacherProfile }) => {
   const [uploading, setUploading] = useState(false)
@@ -90,21 +90,8 @@ export const UploadModulAjarModal = ({ isOpen, onClose, onUpload, atpList, teach
     setUploading(true)
 
     try {
-      // Upload file to Supabase Storage
-      const fileExt = uploadedFile.name.split('.').pop()
-      const fileName = `${Date.now()}_${uploadedFile.name.replace(/[^a-zA-Z0-9.]/g, '_')}`
-      const filePath = `modul_ajar/${teacherId}/${fileName}`
-
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('documents')
-        .upload(filePath, uploadedFile)
-
-      if (uploadError) throw uploadError
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('documents')
-        .getPublicUrl(filePath)
+      // Upload file ke disk server via API (menggantikan Supabase Storage)
+      const uploadResult = await api.upload('/uploads', uploadedFile)
 
       // Create modul ajar record with file reference
       const modulData = {
@@ -116,10 +103,9 @@ export const UploadModulAjarModal = ({ isOpen, onClose, onUpload, atpList, teach
         kelas: formData.kelas,
         alokasi_waktu: formData.alokasi_waktu,
         status: formData.status,
-        file_url: publicUrl,
-        file_path: filePath,
-        file_type: uploadedFile.type,
-        file_name: uploadedFile.name,
+        file_url: uploadResult.url,
+        file_name: uploadResult.name || uploadedFile.name,
+        file_type: uploadResult.type || uploadedFile.type,
         teacher_name: teacherProfile?.nama_lengkap || teacherProfile?.name || 'Guru PJOK',
         institusi: teacherProfile?.sekolah || teacherProfile?.institusi || 'SD Negeri',
         // Set default values for required fields

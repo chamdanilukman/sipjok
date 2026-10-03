@@ -1,0 +1,31 @@
+# =====================================================================
+# Konfigurasi deploy SIPJOK ke VPS "thor" — SALIN file ini jadi
+# deploy/deploy.conf lalu isi nilainya sebelum menjalankan skrip.
+#   cp deploy/deploy.conf.example deploy/deploy.conf
+# =====================================================================
+
+# --- Koneksi VPS ---
+# Host sesuai ~/.ssh/config (ssh thor) atau langsung: root@2001:470:36:885::240
+SSH_HOST=thor
+# Port SSH
+SSH_PORT=22
+
+# --- Domain & HTTPS ---
+# Domain yang diarahkan ke VPS (AAAA -> 2001:470:36:885::240).
+# Contoh: sipjok.sekolah.sch.id  — WAJIB diisi sebelum vps-setup.sh
+DOMAIN=
+
+# --- Direktori & layanan di VPS ---
+APP_DIR=/opt/sipjok
+APP_USER=sipjok
+PORT_APP=5000
+
+# --- Database PostgreSQL di VPS ---
+DB_NAME=sipjok
+DB_USER=sipjok
+# Kosongkan untuk digenerate acak otomatis oleh vps-setup.sh
+DB_PASS=
+
+# --- User login pertama aplikasi (dipakai saat seed:admin) ---
+ADMIN_EMAIL=
+ADMIN_PASSWORD=

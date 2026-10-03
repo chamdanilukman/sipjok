@@ -42,13 +42,13 @@ router.post('/', authenticateUser, async (req, res, next) => {
     if (!parsed.success) {
       return res.status(400).json({ error: 'Validation Error', details: parsed.error.flatten() });
     }
-    const { judul, atp_id, fase, kelas, elemen, capaian_pembelajaran, tujuan_pembelajaran, alokasi_waktu, pertemuan_ke, profil_pelajar_pancasila, sarana_prasarana, target_peserta_didik, model_pembelajaran, kegiatan_pembelajaran, asesmen, pengayaan, refleksi } = parsed.data;
+    const { judul, atp_id, fase, kelas, elemen, capaian_pembelajaran, tujuan_pembelajaran, alokasi_waktu, pertemuan_ke, profil_pelajar_pancasila, sarana_prasarana, target_peserta_didik, model_pembelajaran, kegiatan_pembelajaran, asesmen, pengayaan, refleksi, file_url, file_name, file_type } = parsed.data;
     if (!judul) {
       return res.status(400).json({ error: 'Bad Request', message: 'Missing required field: judul' });
     }
 
     const [newModule] = await db.insert(modulAjar)
-      .values({ teacher_id: req.user!.id, judul, atp_id, fase, kelas, elemen, capaian_pembelajaran, tujuan_pembelajaran, alokasi_waktu, pertemuan_ke, profil_pelajar_pancasila, sarana_prasarana, target_peserta_didik, model_pembelajaran, kegiatan_pembelajaran, asesmen, pengayaan, refleksi })
+      .values({ teacher_id: req.user!.id, judul, atp_id, fase, kelas, elemen, capaian_pembelajaran, tujuan_pembelajaran, alokasi_waktu, pertemuan_ke, profil_pelajar_pancasila, sarana_prasarana, target_peserta_didik, model_pembelajaran, kegiatan_pembelajaran, asesmen, pengayaan, refleksi, file_url, file_name, file_type })
       .returning();
     res.status(201).json(newModule);
   } catch (error) {
@@ -62,9 +62,9 @@ router.put('/:id', authenticateUser, async (req, res, next) => {
     if (!parsed.success) {
       return res.status(400).json({ error: 'Validation Error', details: parsed.error.flatten() });
     }
-    const { judul, atp_id, fase, kelas, elemen, capaian_pembelajaran, tujuan_pembelajaran, alokasi_waktu, pertemuan_ke, profil_pelajar_pancasila, sarana_prasarana, target_peserta_didik, model_pembelajaran, kegiatan_pembelajaran, asesmen, pengayaan, refleksi } = parsed.data;
+    const { judul, atp_id, fase, kelas, elemen, capaian_pembelajaran, tujuan_pembelajaran, alokasi_waktu, pertemuan_ke, profil_pelajar_pancasila, sarana_prasarana, target_peserta_didik, model_pembelajaran, kegiatan_pembelajaran, asesmen, pengayaan, refleksi, file_url, file_name, file_type } = parsed.data;
     const [updated] = await db.update(modulAjar)
-      .set({ judul, atp_id, fase, kelas, elemen, capaian_pembelajaran, tujuan_pembelajaran, alokasi_waktu, pertemuan_ke, profil_pelajar_pancasila, sarana_prasarana, target_peserta_didik, model_pembelajaran, kegiatan_pembelajaran, asesmen, pengayaan, refleksi, updated_at: new Date() })
+      .set({ judul, atp_id, fase, kelas, elemen, capaian_pembelajaran, tujuan_pembelajaran, alokasi_waktu, pertemuan_ke, profil_pelajar_pancasila, sarana_prasarana, target_peserta_didik, model_pembelajaran, kegiatan_pembelajaran, asesmen, pengayaan, refleksi, file_url, file_name, file_type, updated_at: new Date() })
       .where(and(eq(modulAjar.id, req.params.id), eq(modulAjar.teacher_id, req.user!.id)))
       .returning();
     if (!updated) {

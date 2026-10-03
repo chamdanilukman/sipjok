@@ -10,3 +10,4 @@ vite.config.ts.*
 .local/
 .commandcode/
 *.log
+deploy/deploy.conf

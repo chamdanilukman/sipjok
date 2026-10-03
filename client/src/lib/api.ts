@@ -1,9 +1,8 @@
-// @ts-ignore - supabase.js doesn't have types but works fine
-import { supabase } from '../config/supabase';
+const TOKEN_KEY = 'sipjok_token';
 
 /**
- * API Client for making authenticated requests to the backend
- * Automatically handles token injection and error handling
+ * API Client for making authenticated requests to the backend.
+ * The JWT is issued by POST /api/auth/login and stored in localStorage.
  */
 class ApiClient {
   private baseURL: string;
@@ -13,17 +12,27 @@ class ApiClient {
     this.baseURL = '/api';
   }
 
-  /**
-   * Get authentication token from Supabase session
-   */
-  private async getAuthToken(): Promise<string | null> {
+  // ------------------------------------------------------------------
+  // Token management (localStorage)
+  // ------------------------------------------------------------------
+  getToken(): string | null {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      return session?.access_token || null;
-    } catch (error) {
-      console.error('Failed to get auth token:', error);
+      return localStorage.getItem(TOKEN_KEY);
+    } catch {
       return null;
     }
+  }
+
+  setToken(token: string): void {
+    localStorage.setItem(TOKEN_KEY, token);
+  }
+
+  clearToken(): void {
+    localStorage.removeItem(TOKEN_KEY);
+  }
+
+  isAuthenticated(): boolean {
+    return !!this.getToken();
   }
 
   /**
@@ -33,14 +42,14 @@ class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const token = await this.getAuthToken();
+    const token = this.getToken();
 
     if (!token) {
       throw new Error('Not authenticated. Please log in.');
     }
 
     const url = `${this.baseURL}${endpoint}`;
-    
+
     const response = await fetch(url, {
       ...options,
       headers: {
@@ -52,6 +61,14 @@ class ApiClient {
 
     // Handle non-OK responses
     if (!response.ok) {
+      // Session expired / revoked → drop token so ProtectedRoute sends us to login
+      if (response.status === 401) {
+        this.clearToken();
+        if (!window.location.pathname.startsWith('/login')) {
+          window.location.assign('/login');
+        }
+      }
+
       const errorData = await response.json().catch(() => ({
         error: 'Request failed',
         message: response.statusText,
@@ -63,6 +80,35 @@ class ApiClient {
     // Handle empty responses (e.g., 204 No Content)
     if (response.status === 204) {
       return {} as T;
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Upload a file as multipart/form-data (server saves it on local disk)
+   */
+  async upload<T = any>(endpoint: string, file: File, field = 'file'): Promise<T> {
+    const token = this.getToken();
+    if (!token) {
+      throw new Error('Not authenticated. Please log in.');
+    }
+
+    const formData = new FormData();
+    formData.append(field, file);
+
+    const response = await fetch(`${this.baseURL}${endpoint}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({
+        error: 'Upload failed',
+        message: response.statusText,
+      }));
+      throw new Error(errorData.message || errorData.error || 'Upload failed');
     }
 
     return response.json();

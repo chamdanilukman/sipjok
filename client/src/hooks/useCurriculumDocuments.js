@@ -65,7 +65,41 @@ const useCurriculumDocuments = () => {
     }
   }, [])
 
-  return { documents, setDocuments, loading, error, loadDocuments, createDocument, updateDocument, deleteDocument }
+  /**
+   * Upload a document file to the server's local storage, then create
+   * the curriculum_documents record pointing at it.
+   */
+  const uploadDocument = useCallback(async (userId, file, meta = {}) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const result = await api.upload('/uploads', file)
+      const data = await api.post('/curriculum', {
+        title: meta.nama_dokumen || file.name,
+        document_type: meta.jenis || 'Lainnya',
+        description: meta.deskripsi || null,
+        file_url: result.url,
+      })
+      setDocuments((prev) => [...prev, data])
+      return data
+    } catch (err) {
+      setError(err.message)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  /**
+   * Open a stored document. With local storage the file_url is a
+   * same-origin path like /uploads/<filename>.
+   */
+  const downloadDocument = useCallback(async (fileUrl, fileName) => {
+    if (!fileUrl) throw new Error('Dokumen tidak memiliki file terlampir')
+    window.open(fileUrl, '_blank')
+  }, [])
+
+  return { documents, setDocuments, loading, error, loadDocuments, createDocument, updateDocument, deleteDocument, uploadDocument, downloadDocument }
 }
 
 export default useCurriculumDocuments

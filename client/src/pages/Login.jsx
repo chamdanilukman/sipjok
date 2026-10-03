@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { signIn, isAuthenticated } from '../config/supabase'
+import { signIn, isAuthenticated } from '../config/auth'
 
 export const Login = () => {
   const [email, setEmail] = useState('')

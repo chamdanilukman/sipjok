@@ -22,9 +22,10 @@ Kokurikuler (Jadwal, Program, Modul), Ekstrakurikuler (Program, Jadwal, Catatan 
 
 - **Frontend:** React 18 + Vite, shadcn/ui (Radix) + Tailwind CSS, React Router, hooks kustom di `client/src/hooks/`.
 - **Backend:** Express + TypeScript (`server/`), REST API di bawah `/api`, Drizzle ORM + PostgreSQL.
-- **Autentikasi:** Supabase Auth (JWT). Frontend mengirim `Authorization: Bearer <token>` (lihat `client/src/lib/api.ts`); server memverifikasi token via `server/middleware/auth.ts`.
-- **Database:** PostgreSQL terkelola (Railway) — vendor-independent, siap dipindah ke VPS. Skema 14 tabel di `shared/schema.ts`.
-- **Keamanan:** rate limit 100 req/menit per IP (`server/middleware/rateLimit.ts`), validasi Zod per endpoint, error handler terpusat, semua data difilter per `teacher_id` user terautentikasi.
+- **Autentikasi:** internal — login email+password (bcrypt) di Express, sesi JWT (`server/routes/auth.ts`); frontend menyimpan token di localStorage (`client/src/lib/api.ts`).
+- **Database:** PostgreSQL (di VPS atau Railway) — vendor-independent. Skema 14 tabel di `shared/schema.ts`.
+- **File upload:** disimpan di disk server (`POST /api/uploads`, multer) — lampiran modul ajar, dokumen kurikulum, foto profil; disajikan dari `/uploads`.
+- **Keamanan:** rate limit 100 req/menit per IP + limiter khusus login, validasi Zod per endpoint, error handler terpusat, semua data difilter per user terautentikasi, `trust proxy` untuk berada di balik Nginx.
 
 ```
 client/   → React SPA (build → dist/public, disajikan Express)
@@ -43,16 +44,17 @@ shared/   → Skema Drizzle + tipe Zod (dipakai client & server)
    ```
 
 3. **Variabel lingkungan** (lihat `.env.example`):
-   - `DATABASE_URL` — koneksi PostgreSQL (lokal atau Railway)
-   - `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` — project Supabase (auth)
-   - `SUPABASE_SERVICE_ROLE_KEY` — verifikasi JWT di server
+   - `DATABASE_URL` — koneksi PostgreSQL
+   - `JWT_SECRET` — kunci tanda-tangan sesi (generate: `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`)
+   - `ADMIN_EMAIL`, `ADMIN_PASSWORD` — untuk membuat user login pertama
    - `VITE_APP_NAME`, `VITE_APP_VERSION`, `VITE_API_TIMEOUT`
-   - `CORS_ORIGIN` (opsional), `PORT` (default 5000)
+   - `CORS_ORIGIN` (opsional), `UPLOAD_DIR` (opsional), `PORT` (default 5000)
 
-4. **Skema database** (wajib sebelum pertama kali menjalankan):
+4. **Skema database + user pertama** (wajib sebelum pertama kali menjalankan):
    ```bash
    npm run db:push          # push skema Drizzle ke DATABASE_URL
    psql "$DATABASE_URL" -f migrations/add-indexes.sql   # 36 indeks performa
+   ADMIN_EMAIL=... ADMIN_PASSWORD=... npm run seed:admin   # user login pertama
    ```
 
 5. **Development:**
@@ -68,34 +70,32 @@ shared/   → Skema Drizzle + tipe Zod (dipakai client & server)
 
 7. **Cek kesehatan:** `GET /api/health` → `{"status":"ok",...}` (tanpa auth).
 
-## Migrasi Data Supabase → Railway
+## Deploy
 
-Setelah `DATABASE_URL` Railway asli terisi di `.env` dan skema sudah di-push:
+**VPS sendiri (disarankan — full-stack di satu server):** lihat [docs/DEPLOY-VPS.md](docs/DEPLOY-VPS.md) dan skrip siap-pakai di `deploy/` (provisi `vps-setup.sh`, deploy ulang `push-to-vps.sh`, backup harian `backup.sh`). Stack: Nginx + systemd + PostgreSQL + HTTPS certbot.
+
+**Railway (alternatif):** set `DATABASE_URL` dari Postgres Railway, build `npm run build`, start `npm start`, verifikasi `/api/health`.
+
+## Migrasi Data Lama dari Supabase
+
+Setelah `DATABASE_URL` tujuan terisi dan skema sudah di-push, isi sementara
+`VITE_SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` (projek lama), lalu:
 
 ```bash
-npm run migrate:supabase   # ekspor 14 tabel dari Supabase → impor ke Railway, + ringkasan
+npm run migrate:supabase   # ekspor 14 tabel dari Supabase → impor ke DATABASE_URL, + ringkasan
 npm run db:check           # verifikasi: daftar tabel & estimasi jumlah baris di DATABASE_URL
 ```
 
 Bandingkan ringkasan `Imported` dengan data Supabase, lalu uji relasi (kelas → siswa → absensi/nilai) dari UI.
 
-## Deploy ke Railway
-
-1. Provision **PostgreSQL** di project Railway, lalu set variabel:
-   - `DATABASE_URL` → `${{Postgres.DATABASE_URL}}` (reference service)
-   - `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
-   - `VITE_APP_NAME`, `VITE_APP_VERSION`, `VITE_API_TIMEOUT`
-2. Build command `npm run build`, start command `npm start` (Railway mengatur `PORT`).
-3. Deploy dari GitHub (`git push origin main`), pantau log build.
-4. Verifikasi: buka URL aplikasi, cek `/api/health`, lakukan login.
-
 ## Referensi API
 
-Semua endpoint (kecuali `/api/health`) memerlukan header `Authorization: Bearer <Supabase JWT>` dan bersifat user-scoped. Pola CRUD seragam per entitas: `GET /api/<entity>?limit&offset`, `GET /api/<entity>/:id`, `POST /api/<entity>`, `PUT /api/<entity>/:id`, `DELETE /api/<entity>/:id`.
+Semua endpoint (kecuali `/api/health` dan `/api/auth/login`) memerlukan header `Authorization: Bearer <JWT internal>` dan bersifat user-scoped. Pola CRUD seragam per entitas: `GET /api/<entity>?limit&offset`, `GET /api/<entity>/:id`, `POST /api/<entity>`, `PUT /api/<entity>/:id`, `DELETE /api/<entity>/:id`.
 
 | Entitas | Endpoint | Ekstra |
 |---|---|---|
-| Auth | `/api/auth/me` | identitas user dari JWT |
+| Auth | `/api/auth/login`, `/api/auth/me`, `/api/auth/change-password` | login rate-limited; JWT 7 hari |
+| Upload | `/api/uploads` | multipart (field `file`), disajikan dari `/uploads`, batas 25 MB |
 | Kelas | `/api/classes` | — |
 | Siswa | `/api/students` | `?class_id=`, bulk import |
 | Jadwal | `/api/schedules` | `?class_id=`, by day |

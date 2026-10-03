@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useTeacherProfile from '../hooks/useTeacherProfile'
-import supabase from '../config/supabase'
+import { signOut, getCurrentUserId } from '../config/auth'
 
 export const Header = ({ onMenuClick }) => {
   const navigate = useNavigate()
@@ -13,14 +13,16 @@ export const Header = ({ onMenuClick }) => {
   // Get current user and load profile
   useEffect(() => {
     const getCurrentUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        setUserId(user.id)
-        loadProfile(user.id)
+      try {
+        const id = await getCurrentUserId()
+        setUserId(id)
+        loadProfile(id)
+      } catch {
+        navigate('/login')
       }
     }
     getCurrentUser()
-  }, [loadProfile])
+  }, [loadProfile, navigate])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -36,7 +38,7 @@ export const Header = ({ onMenuClick }) => {
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut()
+      await signOut()
       navigate('/login')
     } catch (err) {
       console.error('Logout error:', err)

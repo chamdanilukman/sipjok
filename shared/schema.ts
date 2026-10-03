@@ -42,6 +42,8 @@ export const teacherProfile = pgTable("teacher_profile", {
   school_name: text("school_name"),
   school_address: text("school_address"),
   phone: varchar("phone", { length: 20 }),
+  profile_photo_url: text("profile_photo_url"),
+  profile_photo_path: text("profile_photo_path"),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -198,6 +200,9 @@ export const modulAjar = pgTable("modul_ajar", {
   asesmen: text("asesmen"),
   pengayaan: text("pengayaan"),
   refleksi: text("refleksi"),
+  file_url: text("file_url"),
+  file_name: text("file_name"),
+  file_type: text("file_type"),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
 });

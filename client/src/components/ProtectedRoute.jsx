@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import { isAuthenticated, getCurrentUserId, IS_MOCK_MODE } from '../config/supabase'
+import { isAuthenticated } from '../config/auth'
 
 /**
  * Protected Route Component
- * Redirects to login if user is not authenticated
- * In mock mode (when Supabase is not configured), allows access for testing
+ * Redirects to login if there is no valid session token
  */
 export const ProtectedRoute = ({ children }) => {
   const [loading, setLoading] = useState(true)
@@ -17,25 +16,8 @@ export const ProtectedRoute = ({ children }) => {
 
   const checkAuth = async () => {
     try {
-      // In mock mode, bypass authentication for UI testing
-      if (IS_MOCK_MODE && import.meta.env.DEV) {
-        console.info('🔓 Mock mode: Bypassing authentication for UI testing')
-        setAuthenticated(true)
-        setLoading(false)
-        return
-      }
-
-      // Check if user is authenticated
       const auth = await isAuthenticated()
-      
-      // If not authenticated, try to get user ID (will use hardcoded ID as fallback)
-      if (!auth) {
-        const userId = await getCurrentUserId()
-        // If we got a user ID (even hardcoded), consider it authenticated for development
-        setAuthenticated(!!userId)
-      } else {
-        setAuthenticated(true)
-      }
+      setAuthenticated(!!auth)
     } catch (error) {
       console.error('Auth check failed:', error)
       setAuthenticated(false)

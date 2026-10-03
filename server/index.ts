@@ -6,6 +6,10 @@ import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
 
+// Behind Nginx/Caddy on the VPS: honor X-Forwarded-For so rate limiting
+// sees the real client IP instead of the proxy.
+app.set('trust proxy', 1);
+
 app.use(cors({
   origin: process.env.CORS_ORIGIN || true,
   credentials: true,

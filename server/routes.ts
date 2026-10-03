@@ -1,6 +1,7 @@
-import type { Express } from "express";
+import express, { type Express } from "express";
 import { createServer, type Server } from "http";
 import { apiLimiter } from "./middleware/rateLimit";
+import { UPLOAD_DIR } from "./routes/uploads";
 import classesRouter from "./routes/classes";
 import studentsRouter from "./routes/students";
 import schedulesRouter from "./routes/schedules";
@@ -16,6 +17,7 @@ import curriculumRouter from "./routes/curriculum";
 import calendarRouter from "./routes/calendar";
 import authRouter from "./routes/auth";
 import healthRouter from "./routes/health";
+import uploadsRouter from "./routes/uploads";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -25,6 +27,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register API routes
   app.use('/api/health', healthRouter);
   app.use('/api/auth', authRouter);
+  app.use('/api/uploads', uploadsRouter);
+
+  // Serve uploaded files (stored on local disk by POST /api/uploads)
+  app.use('/uploads', express.static(UPLOAD_DIR));
   app.use('/api/classes', classesRouter);
   app.use('/api/students', studentsRouter);
   app.use('/api/schedules', schedulesRouter);
