@@ -382,6 +382,253 @@ export const calendarEventsRelations = relations(calendarEvents, ({ one }) => ({
 }));
 
 // ============================================================================
+// COCURRICULAR PROGRAMS TABLE (Kokurikuler — permendikdasmen 13/2025:
+// kegiatan penguatan 8 dimensi profil lulusan, menggantikan istilah P5)
+// ============================================================================
+export const cocurricularPrograms = pgTable("cocurricular_programs", {
+  id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
+  teacher_id: varchar("teacher_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  judul: text("judul").notNull(),
+  tema: varchar("tema", { length: 100 }), // tema kokurikuler, mis. Bangunlah Jiwa dan Raganya
+  topik: varchar("topik", { length: 150 }), // mis. Gaya Hidup Sehat
+  fase: varchar("fase", { length: 10 }),
+  kelas: varchar("kelas", { length: 20 }),
+  dimensi: jsonb("dimensi"), // array key 8 dimensi profil lulusan
+  deskripsi: text("deskripsi"),
+  tujuan_kegiatan: text("tujuan_kegiatan"),
+  alokasi_waktu: varchar("alokasi_waktu", { length: 100 }),
+  status: varchar("status", { length: 20 }).notNull().default("rencana"), // rencana | berjalan | selesai
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const cocurricularProgramsRelations = relations(cocurricularPrograms, ({ one }) => ({
+  teacher: one(users, {
+    fields: [cocurricularPrograms.teacher_id],
+    references: [users.id],
+  }),
+}));
+
+// ============================================================================
+// COCURRICULAR SCHEDULES TABLE — jadwal rutin kegiatan kokurikuler
+// ============================================================================
+export const cocurricularSchedules = pgTable("cocurricular_schedules", {
+  id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
+  teacher_id: varchar("teacher_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  program_id: varchar("program_id", { length: 255 }).references(() => cocurricularPrograms.id, { onDelete: "set null" }),
+  kegiatan: text("kegiatan").notNull(),
+  day_of_week: integer("day_of_week").notNull(), // 0=Senin ... 6=Minggu
+  jam_mulai: varchar("jam_mulai", { length: 10 }),
+  jam_selesai: varchar("jam_selesai", { length: 10 }),
+  lokasi: varchar("lokasi", { length: 150 }),
+  keterangan: text("keterangan"),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const cocurricularSchedulesRelations = relations(cocurricularSchedules, ({ one }) => ({
+  teacher: one(users, {
+    fields: [cocurricularSchedules.teacher_id],
+    references: [users.id],
+  }),
+  program: one(cocurricularPrograms, {
+    fields: [cocurricularSchedules.program_id],
+    references: [cocurricularPrograms.id],
+  }),
+}));
+
+// ============================================================================
+// COCURRICULAR MODULES TABLE — repositori materi/modul kegiatan kokurikuler
+// ============================================================================
+export const cocurricularModules = pgTable("cocurricular_modules", {
+  id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
+  teacher_id: varchar("teacher_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  program_id: varchar("program_id", { length: 255 }).references(() => cocurricularPrograms.id, { onDelete: "set null" }),
+  judul: text("judul").notNull(),
+  tema: varchar("tema", { length: 100 }),
+  topik: varchar("topik", { length: 150 }),
+  fase: varchar("fase", { length: 10 }),
+  kelas: varchar("kelas", { length: 20 }),
+  deskripsi: text("deskripsi"),
+  konten_materi: text("konten_materi"),
+  file_url: text("file_url"),
+  file_name: text("file_name"),
+  file_type: text("file_type"),
+  status: varchar("status", { length: 20 }).notNull().default("draft"), // draft | publikasi
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const cocurricularModulesRelations = relations(cocurricularModules, ({ one }) => ({
+  teacher: one(users, {
+    fields: [cocurricularModules.teacher_id],
+    references: [users.id],
+  }),
+  program: one(cocurricularPrograms, {
+    fields: [cocurricularModules.program_id],
+    references: [cocurricularPrograms.id],
+  }),
+}));
+
+// ============================================================================
+// EXTRACURRICULAR PROGRAMS TABLE (Permendikdasmen 13/2025: ekstrakurikuler
+// wajib diselenggarakan, siswa mengikuti minimal satu kegiatan)
+// ============================================================================
+export const extracurricularPrograms = pgTable("extracurricular_programs", {
+  id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
+  teacher_id: varchar("teacher_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  nama: text("nama").notNull(),
+  kategori: varchar("kategori", { length: 50 }).default("olahraga"), // olahraga | seni | keagamaan | kepemimpinan | teknologi
+  pembina: varchar("pembina", { length: 150 }),
+  lokasi: varchar("lokasi", { length: 150 }),
+  deskripsi: text("deskripsi"),
+  target: varchar("target", { length: 200 }), // target kegiatan/prestasi
+  status: varchar("status", { length: 20 }).notNull().default("aktif"), // aktif | nonaktif
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const extracurricularProgramsRelations = relations(extracurricularPrograms, ({ one }) => ({
+  teacher: one(users, {
+    fields: [extracurricularPrograms.teacher_id],
+    references: [users.id],
+  }),
+}));
+
+// ============================================================================
+// EXTRACURRICULAR SCHEDULES TABLE — jadwal latihan/sesi ekstrakurikuler
+// ============================================================================
+export const extracurricularSchedules = pgTable("extracurricular_schedules", {
+  id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
+  teacher_id: varchar("teacher_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  program_id: varchar("program_id", { length: 255 }).references(() => extracurricularPrograms.id, { onDelete: "set null" }),
+  kegiatan: text("kegiatan").notNull(),
+  day_of_week: integer("day_of_week").notNull(), // 0=Senin ... 6=Minggu
+  jam_mulai: varchar("jam_mulai", { length: 10 }),
+  jam_selesai: varchar("jam_selesai", { length: 10 }),
+  lokasi: varchar("lokasi", { length: 150 }),
+  pembina: varchar("pembina", { length: 150 }),
+  keterangan: text("keterangan"),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const extracurricularSchedulesRelations = relations(extracurricularSchedules, ({ one }) => ({
+  teacher: one(users, {
+    fields: [extracurricularSchedules.teacher_id],
+    references: [users.id],
+  }),
+  program: one(extracurricularPrograms, {
+    fields: [extracurricularSchedules.program_id],
+    references: [extracurricularPrograms.id],
+  }),
+}));
+
+// ============================================================================
+// COMPETITION RECORDS TABLE — catatan peserta lomba & prestasi siswa
+// (alur kompetisi: O2SN kecamatan → POPDA/Kejurda kabupaten → PROVDA provinsi → POPNAS)
+// ============================================================================
+export const competitionRecords = pgTable("competition_records", {
+  id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
+  teacher_id: varchar("teacher_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  student_id: varchar("student_id", { length: 255 }).references(() => students.id, { onDelete: "set null" }),
+  nama_peserta: varchar("nama_peserta", { length: 150 }).notNull(),
+  nama_lomba: text("nama_lomba").notNull(),
+  tingkat: varchar("tingkat", { length: 50 }).notNull(), // sekolah | kecamatan | kabupaten | provinsi | nasional | internasional
+  jenis: varchar("jenis", { length: 50 }).default("olahraga"), // olahraga | seni | akademik
+  cabang: varchar("cabang", { length: 100 }), // cabang/nomor lomba, mis. Atletik Kids - Kanga Escape
+  penyelenggara: varchar("penyelenggara", { length: 200 }),
+  tempat: varchar("tempat", { length: 200 }),
+  tanggal_lomba: date("tanggal_lomba"),
+  hasil: varchar("hasil", { length: 50 }), // Juara 1 | Juara 2 | Juara 3 | Harapan | Finalis | Peserta
+  peringkat: integer("peringkat"),
+  catatan: text("catatan"),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const competitionRecordsRelations = relations(competitionRecords, ({ one }) => ({
+  teacher: one(users, {
+    fields: [competitionRecords.teacher_id],
+    references: [users.id],
+  }),
+  student: one(students, {
+    fields: [competitionRecords.student_id],
+    references: [students.id],
+  }),
+}));
+
+// ============================================================================
+// VISITATION LOGS TABLE — buku kunjungan/visitasi kelas (supervisi kepala
+// sekolah, pengawas, atau kunjungan guru ke sarana & kelas lain)
+// ============================================================================
+export const visitationLogs = pgTable("visitation_logs", {
+  id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
+  teacher_id: varchar("teacher_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  tanggal: date("tanggal").notNull(),
+  jam_mulai: varchar("jam_mulai", { length: 10 }),
+  jam_selesai: varchar("jam_selesai", { length: 10 }),
+  class_id: varchar("class_id", { length: 255 }).references(() => classes.id, { onDelete: "set null" }),
+  lokasi: varchar("lokasi", { length: 150 }),
+  pengunjung: varchar("pengunjung", { length: 150 }).notNull(),
+  jabatan: varchar("jabatan", { length: 50 }), // Kepala Sekolah | Pengawas | Dinas | Guru
+  jenis: varchar("jenis", { length: 50 }).default("Supervisi Pembelajaran"),
+  materi: varchar("materi", { length: 200 }),
+  hasil_observasi: text("hasil_observasi"),
+  rekomendasi: text("rekomendasi"),
+  tindak_lanjut: text("tindak_lanjut"),
+  status: varchar("status", { length: 20 }).notNull().default("selesai"), // terjadwal | selesai
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const visitationLogsRelations = relations(visitationLogs, ({ one }) => ({
+  teacher: one(users, {
+    fields: [visitationLogs.teacher_id],
+    references: [users.id],
+  }),
+  class: one(classes, {
+    fields: [visitationLogs.class_id],
+    references: [classes.id],
+  }),
+}));
+
+// ============================================================================
+// STUDENT REFLECTIONS TABLE — refleksi diri siswa pasca pembelajaran PJOK
+// (pengalaman belajar "merefleksi" dalam kerangka Pembelajaran Mendalam)
+// ============================================================================
+export const studentReflections = pgTable("student_reflections", {
+  id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
+  teacher_id: varchar("teacher_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  student_id: varchar("student_id", { length: 255 }).notNull().references(() => students.id, { onDelete: "cascade" }),
+  class_id: varchar("class_id", { length: 255 }).notNull().references(() => classes.id, { onDelete: "cascade" }),
+  tanggal: date("tanggal").notNull(),
+  materi: varchar("materi", { length: 200 }),
+  perasaan: varchar("perasaan", { length: 20 }), // senang | biasa | sedih
+  tingkat_pemahaman: integer("tingkat_pemahaman"), // 1-5
+  yang_dipelajari: text("yang_dipelajari"),
+  kesulitan: text("kesulitan"),
+  rencana: text("rencana"),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const studentReflectionsRelations = relations(studentReflections, ({ one }) => ({
+  teacher: one(users, {
+    fields: [studentReflections.teacher_id],
+    references: [users.id],
+  }),
+  student: one(students, {
+    fields: [studentReflections.student_id],
+    references: [students.id],
+  }),
+  class: one(classes, {
+    fields: [studentReflections.class_id],
+    references: [classes.id],
+  }),
+}));
+
+// ============================================================================
 // ZOD SCHEMAS FOR VALIDATION
 // ============================================================================
 
@@ -511,6 +758,78 @@ export const insertCalendarEventSchema = createInsertSchema(calendarEvents).omit
 });
 export const selectCalendarEventSchema = createSelectSchema(calendarEvents);
 
+// Cocurricular Programs
+export const insertCocurricularProgramSchema = createInsertSchema(cocurricularPrograms).omit({
+  teacher_id: true,
+  id: true,
+  created_at: true,
+  updated_at: true,
+});
+export const selectCocurricularProgramSchema = createSelectSchema(cocurricularPrograms);
+
+// Cocurricular Schedules
+export const insertCocurricularScheduleSchema = createInsertSchema(cocurricularSchedules).omit({
+  teacher_id: true,
+  id: true,
+  created_at: true,
+  updated_at: true,
+});
+export const selectCocurricularScheduleSchema = createSelectSchema(cocurricularSchedules);
+
+// Cocurricular Modules
+export const insertCocurricularModuleSchema = createInsertSchema(cocurricularModules).omit({
+  teacher_id: true,
+  id: true,
+  created_at: true,
+  updated_at: true,
+});
+export const selectCocurricularModuleSchema = createSelectSchema(cocurricularModules);
+
+// Extracurricular Programs
+export const insertExtracurricularProgramSchema = createInsertSchema(extracurricularPrograms).omit({
+  teacher_id: true,
+  id: true,
+  created_at: true,
+  updated_at: true,
+});
+export const selectExtracurricularProgramSchema = createSelectSchema(extracurricularPrograms);
+
+// Extracurricular Schedules
+export const insertExtracurricularScheduleSchema = createInsertSchema(extracurricularSchedules).omit({
+  teacher_id: true,
+  id: true,
+  created_at: true,
+  updated_at: true,
+});
+export const selectExtracurricularScheduleSchema = createSelectSchema(extracurricularSchedules);
+
+// Competition Records
+export const insertCompetitionRecordSchema = createInsertSchema(competitionRecords).omit({
+  teacher_id: true,
+  id: true,
+  created_at: true,
+  updated_at: true,
+});
+export const selectCompetitionRecordSchema = createSelectSchema(competitionRecords);
+
+// Visitation Logs
+export const insertVisitationLogSchema = createInsertSchema(visitationLogs).omit({
+  teacher_id: true,
+  id: true,
+  created_at: true,
+  updated_at: true,
+});
+export const selectVisitationLogSchema = createSelectSchema(visitationLogs);
+
+// Student Reflections
+export const insertStudentReflectionSchema = createInsertSchema(studentReflections).omit({
+  teacher_id: true,
+  id: true,
+  created_at: true,
+  updated_at: true,
+});
+export const selectStudentReflectionSchema = createSelectSchema(studentReflections);
+
 // ============================================================================
 // TYPESCRIPT TYPES
 // ============================================================================
@@ -556,3 +875,27 @@ export type CurriculumDocument = typeof curriculumDocuments.$inferSelect;
 
 export type InsertCalendarEvent = z.infer<typeof insertCalendarEventSchema>;
 export type CalendarEvent = typeof calendarEvents.$inferSelect;
+
+export type InsertCocurricularProgram = z.infer<typeof insertCocurricularProgramSchema>;
+export type CocurricularProgram = typeof cocurricularPrograms.$inferSelect;
+
+export type InsertCocurricularSchedule = z.infer<typeof insertCocurricularScheduleSchema>;
+export type CocurricularSchedule = typeof cocurricularSchedules.$inferSelect;
+
+export type InsertCocurricularModule = z.infer<typeof insertCocurricularModuleSchema>;
+export type CocurricularModule = typeof cocurricularModules.$inferSelect;
+
+export type InsertExtracurricularProgram = z.infer<typeof insertExtracurricularProgramSchema>;
+export type ExtracurricularProgram = typeof extracurricularPrograms.$inferSelect;
+
+export type InsertExtracurricularSchedule = z.infer<typeof insertExtracurricularScheduleSchema>;
+export type ExtracurricularSchedule = typeof extracurricularSchedules.$inferSelect;
+
+export type InsertCompetitionRecord = z.infer<typeof insertCompetitionRecordSchema>;
+export type CompetitionRecord = typeof competitionRecords.$inferSelect;
+
+export type InsertVisitationLog = z.infer<typeof insertVisitationLogSchema>;
+export type VisitationLog = typeof visitationLogs.$inferSelect;
+
+export type InsertStudentReflection = z.infer<typeof insertStudentReflectionSchema>;
+export type StudentReflection = typeof studentReflections.$inferSelect;

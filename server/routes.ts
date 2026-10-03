@@ -15,6 +15,14 @@ import gradesRouter from "./routes/grades";
 import teacherProfileRouter from "./routes/teacher-profile";
 import curriculumRouter from "./routes/curriculum";
 import calendarRouter from "./routes/calendar";
+import cocurricularProgramsRouter from "./routes/cocurricular-programs";
+import cocurricularSchedulesRouter from "./routes/cocurricular-schedules";
+import cocurricularModulesRouter from "./routes/cocurricular-modules";
+import extracurricularProgramsRouter from "./routes/extracurricular-programs";
+import extracurricularSchedulesRouter from "./routes/extracurricular-schedules";
+import competitionRecordsRouter from "./routes/competition-records";
+import visitationLogsRouter from "./routes/visitation-logs";
+import studentReflectionsRouter from "./routes/student-reflections";
 import authRouter from "./routes/auth";
 import healthRouter from "./routes/health";
 import uploadsRouter from "./routes/uploads";
@@ -44,6 +52,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/teacher-profile', teacherProfileRouter);
   app.use('/api/curriculum', curriculumRouter);
   app.use('/api/calendar', calendarRouter);
+  app.use('/api/cocurricular-programs', cocurricularProgramsRouter);
+  app.use('/api/cocurricular-schedules', cocurricularSchedulesRouter);
+  app.use('/api/cocurricular-modules', cocurricularModulesRouter);
+  app.use('/api/extracurricular-programs', extracurricularProgramsRouter);
+  app.use('/api/extracurricular-schedules', extracurricularSchedulesRouter);
+  app.use('/api/competition-records', competitionRecordsRouter);
+  app.use('/api/visitation-logs', visitationLogsRouter);
+  app.use('/api/student-reflections', studentReflectionsRouter);
 
   // 404 handler for undefined routes
   app.use('/api/*', notFoundHandler);
