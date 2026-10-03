@@ -33,62 +33,66 @@ echo "==> 1/6 Build produksi di laptop"
 npm run build
 
 echo "==> 2/6 Kirim kode ke VPS ($SSH_HOST:$APP_DIR) via tar-over-ssh"
-$SSH_CMD[@] "mkdir -p $APP_DIR"
+"${SSH_CMD[@]}" "mkdir -p $APP_DIR"
 tar czf - \
   --exclude='node_modules' --exclude='.env' --exclude='.git' \
   dist server shared migrations drizzle.config.ts package.json package-lock.json tsconfig.json \
-  | $SSH_CMD[@] "tar xzf - -C $APP_DIR"
+  | "${SSH_CMD[@]}" "tar xzf - -C $APP_DIR"
 
 echo "==> 3/6 Siapkan .env di VPS (dibuat bila belum ada)"
-$SSH_CMD[@] bash -s -- "$APP_DIR" "$PORT_APP" "$DB_NAME" "$DB_USER" "$DB_PASS" "$ADMIN_EMAIL" "$ADMIN_PASSWORD" <<'REMOTE_ENV'
+# Nilai di-inline ke skrip remote (posisi argumen ssh rapuh terhadap argumen kosong)
+REMOTE_SCRIPT=$(cat <<REMOTE_ENV
 set -euo pipefail
-APP_DIR="$1"; PORT_APP="$2"; DB_NAME="$3"; DB_USER="$4"; DB_PASS="$5"; ADMIN_EMAIL="$6"; ADMIN_PASSWORD="$7"
-ENVF="$APP_DIR/.env"
+APP_DIR="$APP_DIR"; PORT_APP="$PORT_APP"; DB_NAME="$DB_NAME"; DB_USER="$DB_USER"
+DB_PASS="$DB_PASS"; ADMIN_EMAIL="$ADMIN_EMAIL"; ADMIN_PASSWORD="$ADMIN_PASSWORD"
+ENVF="\$APP_DIR/.env"
 
-if [[ -f "$ENVF" ]]; then
+if [[ -f "\$ENVF" ]]; then
   echo "    .env sudah ada — tidak diubah (hapus manual bila ingin regenerate)."
 else
-  if [[ -z "$DB_PASS" ]]; then
-    DB_PASS="$(openssl rand -hex 24)"
+  if [[ -z "\$DB_PASS" ]]; then
+    DB_PASS="\$(openssl rand -hex 24)"
     echo "    DB_PASS kosong di deploy.conf -> digenerate acak & diset ke PostgreSQL."
   fi
-  sudo -u postgres psql -qc "ALTER USER $DB_USER WITH PASSWORD '$DB_PASS';" >/dev/null
+  sudo -u postgres psql -qc "ALTER USER \$DB_USER WITH PASSWORD '\$DB_PASS';" >/dev/null
 
-  cat > "$ENVF" <<EOF
+  cat > "\$ENVF" <<ENVEOF
 # Konfigurasi SIPJOK (dihasilkan push-to-vps.sh — chmod 600)
-DATABASE_URL=postgresql://$DB_USER:$DB_PASS@127.0.0.1:5432/$DB_NAME
-JWT_SECRET=$(openssl rand -hex 48)
+DATABASE_URL=postgresql://\$DB_USER:\$DB_PASS@127.0.0.1:5432/\$DB_NAME
+JWT_SECRET=\$(openssl rand -hex 48)
 JWT_TTL=7d
-UPLOAD_DIR=$APP_DIR/uploads
+UPLOAD_DIR=\$APP_DIR/uploads
 UPLOAD_MAX_MB=25
 NODE_ENV=production
-PORT=$PORT_APP
+PORT=\$PORT_APP
 VITE_APP_NAME=SIPJOK
 VITE_APP_VERSION=1.0.0
 VITE_API_TIMEOUT=30000
-EOF
-  if [[ -n "$ADMIN_EMAIL" && -n "$ADMIN_PASSWORD" ]]; then
-    { echo "ADMIN_EMAIL=$ADMIN_EMAIL"; echo "ADMIN_PASSWORD=$ADMIN_PASSWORD"; } >> "$ENVF"
+ENVEOF
+  if [[ -n "\$ADMIN_EMAIL" && -n "\$ADMIN_PASSWORD" ]]; then
+    { echo "ADMIN_EMAIL=\$ADMIN_EMAIL"; echo "ADMIN_PASSWORD=\$ADMIN_PASSWORD"; } >> "\$ENVF"
   fi
-  chmod 600 "$ENVF"
+  chmod 600 "\$ENVF"
   echo "    .env dibuat."
 fi
 REMOTE_ENV
+)
+printf '%s' "$REMOTE_SCRIPT" | "${SSH_CMD[@]}" 'bash -s'
 
 echo "==> 4/6 Install dependensi + push skema DB di VPS"
-$SSH_CMD[@] "cd $APP_DIR && npm ci --no-audit --no-fund 2>&1 | tail -2 \
+"${SSH_CMD[@]}" "cd $APP_DIR && npm ci --no-audit --no-fund 2>&1 | tail -2 \
   && npx drizzle-kit push --force \
   && sudo -u postgres psql -d $DB_NAME -f migrations/add-indexes.sql >/dev/null 2>&1 || true"
 
 echo "==> 5/6 Seed user admin (jika dikonfigurasi) + jalankan ulang layanan"
-$SSH_CMD[@] "cd $APP_DIR \
+"${SSH_CMD[@]}" "cd $APP_DIR \
   && if grep -q '^ADMIN_EMAIL=' .env 2>/dev/null; then npx tsx server/scripts/seed-admin.ts; fi \
   && chown -R $APP_USER:$APP_USER $APP_DIR \
   && systemctl restart sipjok"
 
 echo "==> 6/6 Health check"
 sleep 3
-$SSH_CMD[@] "curl -sf http://127.0.0.1:$PORT_APP/api/health" && echo " ✓ aplikasi hidup" || {
+"${SSH_CMD[@]}" "curl -sf http://127.0.0.1:$PORT_APP/api/health" && echo " ✓ aplikasi hidup" || {
   echo "❌ Aplikasi belum hidup — cek log: ssh $SSH_HOST 'journalctl -u sipjok -n 50'"
   exit 1
 }

@@ -18,7 +18,7 @@ fi
 # shellcheck disable=SC1090
 source "$CONF"
 
-DOMAIN="${DOMAIN:?Isi DOMAIN di deploy.conf dulu}"
+DOMAIN="${DOMAIN:-}"   # opsional: kosong = deploy via IP dulu, HTTPS menyusul
 APP_DIR="${APP_DIR:-/opt/sipjok}"
 APP_USER="${APP_USER:-sipjok}"
 PORT_APP="${PORT_APP:-5000}"
@@ -64,8 +64,9 @@ sed -e "s|__APP_DIR__|${APP_DIR}|g" \
 systemctl daemon-reload
 systemctl enable sipjok.service
 
-echo "==> 7/8 Nginx site untuk ${DOMAIN}"
-sed -e "s|__DOMAIN__|${DOMAIN}|g" \
+echo "==> 7/8 Nginx site (${DOMAIN:-via IP, server_name _})"
+SERVER_NAME="${DOMAIN:-_}"
+sed -e "s|__DOMAIN__|${SERVER_NAME}|g" \
     -e "s|__PORT_APP__|${PORT_APP}|g" \
     "$(dirname "${BASH_SOURCE[0]}")/nginx-sipjok.conf" > /etc/nginx/sites-available/sipjok.conf
 ln -sf /etc/nginx/sites-available/sipjok.conf /etc/nginx/sites-enabled/sipjok.conf
@@ -73,15 +74,20 @@ rm -f /etc/nginx/sites-enabled/default
 nginx -t
 systemctl reload nginx
 
-echo "==> 8/8 HTTPS via certbot (Let's Encrypt) untuk ${DOMAIN}"
-echo "    Pastikan DNS AAAA ${DOMAIN} sudah menunjuk ke IP publik VPS ini!"
-read -r -p "Lanjutkan certbot sekarang? [y/N] " jawab
-if [[ "${jawab:-n}" =~ ^[Yy]$ ]]; then
-  certbot --nginx -d "${DOMAIN}" --non-interactive --agree-tos --register-unsafely-without-email \
-    || certbot --nginx -d "${DOMAIN}" --non-interactive --agree-tos
+if [[ -n "$DOMAIN" ]]; then
+  echo "==> 8/8 HTTPS via certbot (Let's Encrypt) untuk ${DOMAIN}"
+  echo "    Pastikan DNS AAAA/A ${DOMAIN} sudah menunjuk ke IP publik VPS ini!"
+  read -r -p "Lanjutkan certbot sekarang? [y/N] " jawab || jawab=""
+  if [[ "${jawab:-n}" =~ ^[Yy]$ ]]; then
+    certbot --nginx -d "${DOMAIN}" --non-interactive --agree-tos --register-unsafely-without-email \
+      || certbot --nginx -d "${DOMAIN}" --non-interactive --agree-tos
+  else
+    echo "    Lewati. Jalankan manual nanti:"
+    echo "    certbot --nginx -d ${DOMAIN}"
+  fi
 else
-  echo "    Lewati. Jalankan manual nanti:"
-  echo "    certbot --nginx -d ${DOMAIN}"
+  echo "==> 8/8 DOMAIN kosong — lewati certbot. Nanti set DOMAIN di deploy.conf lalu jalankan:"
+  echo "    certbot --nginx -d <domain>"
 fi
 
 cat <<RINGKAS
