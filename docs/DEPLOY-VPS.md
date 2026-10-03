@@ -3,10 +3,13 @@
 Stack di VPS: **Nginx (HTTPS) → systemd → Node.js (Express + React build) → PostgreSQL**.
 Tanpa Docker, tanpa Railway, tanpa Supabase — semuanya berjalan di VPS.
 
-> **Status aktual (2026-10-03): SUDAH TERDEPLOY** di VM Proxmox Ubuntu 24.04
-> (2 vCPU / 4 GB RAM), SSH `root@103.164.173.6 -p 34022` (kunci `vps-thor`).
-> Aplikasi hidup di VM: Nginx :80 → node :5000 → PostgreSQL, login OK,
-> backup cron terpasang. **Akses publik** lihat bagian 5b.
+> **Status aktual (2026-10-03): SUDAH TERDEPLOY & PUBLIK** di VM Proxmox
+> Ubuntu 24.04 (2 vCPU / 4 GB RAM), SSH `root@103.164.173.6 -p 34022` (kunci
+> `vps-thor`). Aplikasi hidup di VM: Nginx :80 → node :5000 → PostgreSQL,
+> login OK, backup cron terpasang.
+> **Akses publik: https://thor.abyte.my.id** — subdomain gratis dari penyedia
+> VPS; Caddy di sisi penyedia memutus HTTPS lalu meneruskan ke Nginx VM
+> (rantai `Caddy → nginx → node`). Tidak perlu certbot di VM.
 
 ```
 Internet ──► Nginx :80/:443 (certbot HTTPS)
@@ -107,26 +110,26 @@ Lihat ringkasan jumlah baris per tabel, hapus dua variabel Supabase lagi dari
 | `ssh thor 'systemctl reload nginx'` | reload reverse proxy |
 | `npm run db:check` (di VPS) | cek tabel & jumlah baris |
 
-## 5b. Akses publik di lingkungan Proxmox/NAT (penting)
+## 5b. Akses publik di lingkungan Proxmox/NAT (teratasi)
 
-IP publik `103.164.173.6` adalah **host Proxmox**, bukan VM. Host-nya menjalankan
-**Caddy sendiri di port 80/443** (respons `Server: Caddy`), sedangkan VM kita
-(`10.10.0.240`) hanya terjangkau lewat NAT port `34022 → 22`. Jadi walau
-Nginx+aplikasi di VM hidup, `http://103.164.173.6/` dari internet masih memunculkan
-redirect milik Caddy host.
+IP publik `103.164.173.6` adalah **host Proxmox**; port 80/443 publik dipegang
+**Caddy milik penyedia/host**, VM (`10.10.0.240`) tidak terjangkau langsung dari luar.
 
-Dua pilihan membuka akses publik (dua-duanya di sisi host, minta admin Proxmox):
+**Solusi aktif sekarang:** penyedia menyediakan subdomain gratis
+**`thor.abyte.my.id`** yang di-proxy Caddy-nya ke VM:80 — HTTPS otomatis di
+sisi penyedia, tanpa certbot di VM. Verifikasi 2026-10-03: root 200,
+health 200, login E2E 200 lewat domain publik.
 
-1. **NAT port tambahan** — arahkan satu port publik ke VM:80, mis.
-   `34080 → 10.10.0.240:80`, lalu aplikasi diakses di `http://103.164.173.6:34080`.
-2. **(Disarankan) Lewat Caddy host + domain** — tambahkan site di Caddy host:
-   ```
-   sipjok.domain-anda.com {
-       reverse_proxy 10.10.0.240:80
-   }
-   ```
-   HTTPS otomatis oleh Caddy host — tidak perlu certbot di VM. Ini juga
-   memenuhi pilihan awal "domain sendiri + HTTPS".
+Bila nanti ingin memakai domain sendiri, minta penyedia (atau admin host
+Proxmox) menambahkan site yang sama polanya:
+
+```
+sipjok.domain-anda.com {
+    reverse_proxy 10.10.0.240:80
+}
+```
+
+lalu set `DOMAIN=sipjok.domain-anda.com` di `deploy/deploy.conf`.
 
 ## 7. Masalah umum
 
