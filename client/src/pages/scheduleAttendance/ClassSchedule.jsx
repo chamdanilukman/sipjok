@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { useDataContext } from '../../context/DataContext'
+import { useNotification } from '../../context/NotificationContext'
 import useClassSchedule from '../../hooks/useClassSchedule'
-import supabase from '../../config/supabase'
+import { api } from '../../lib/api'
+import useClasses from '../../hooks/useClasses'
 
 export const ClassSchedule = () => {
-  const { showNotification } = useDataContext()
+  const { showNotification } = useNotification()
   const {
     schedules,
     loading,
@@ -15,6 +16,8 @@ export const ClassSchedule = () => {
     updateSchedule,
     deleteSchedule,
   } = useClassSchedule()
+
+  const { loadClasses: loadClassesHook } = useClasses()
 
   const [userId, setUserId] = useState(null)
   const [classes, setClasses] = useState([])
@@ -34,29 +37,20 @@ export const ClassSchedule = () => {
   // Get current user and load data
   useEffect(() => {
     const getCurrentUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        setUserId(user.id)
-        loadSchedules(user.id)
-        loadClasses(user.id)
+      try {
+        const user = await api.get('/auth/me')
+        if (user && user.id) {
+          setUserId(user.id)
+          loadSchedules(user.id)
+          const classData = await loadClassesHook()
+          setClasses(classData || [])
+        }
+      } catch (err) {
+        console.error('Error getting current user:', err)
       }
     }
     getCurrentUser()
-  }, [loadSchedules])
-
-  const loadClasses = async (teacherId) => {
-    try {
-      const { data, error: err } = await supabase
-        .from('classes')
-        .select('*')
-        .eq('teacher_id', teacherId)
-
-      if (err) throw err
-      setClasses(data || [])
-    } catch (err) {
-      console.error('Error loading classes:', err)
-    }
-  }
+  }, [loadSchedules, loadClassesHook])
 
   const handleOpenModal = (day, schedule = null) => {
     setSelectedDay(day)
@@ -168,10 +162,7 @@ export const ClassSchedule = () => {
         user_id: userId,
       }
 
-      const { error: calendarError } = await supabase
-        .from('calendar_events')
-        .insert([eventData])
-
+      const { error: calendarError } = await api.post('/calendar', eventData)
       if (calendarError) throw calendarError
 
       showNotification('Jadwal berhasil ditambahkan ke kalender', 'success')

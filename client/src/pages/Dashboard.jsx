@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useDataContext } from '../context/DataContext'
+import { useNotification } from '../context/NotificationContext'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -14,7 +14,7 @@ import {
   Legend,
 } from 'chart.js'
 import { Line, Bar, Doughnut } from 'react-chartjs-2'
-import supabase from '../config/supabase'
+import { api } from '../lib/api'
 
 // Register ChartJS components
 ChartJS.register(
@@ -31,10 +31,10 @@ ChartJS.register(
 
 export const Dashboard = () => {
   const navigate = useNavigate()
-  const { loading, error } = useDataContext()
-  const [userId, setUserId] = useState(null)
+  const { showNotification } = useNotification()
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [stats, setStats] = useState({
-    totalKelas: 0,
     totalSiswa: 0,
     totalModulAjar: 0,
     totalAbsensiHariIni: 0,
@@ -45,52 +45,25 @@ export const Dashboard = () => {
   const [activityData, setActivityData] = useState(null)
 
   useEffect(() => {
-    getCurrentUser()
+    loadDashboardData()
   }, [])
-
-  useEffect(() => {
-    if (userId) {
-      loadDashboardData()
-    }
-  }, [userId])
-
-  const getCurrentUser = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (user) {
-      setUserId(user.id)
-    }
-  }
 
   const loadDashboardData = async () => {
     try {
-      // Load classes
-      const { data: classes } = await supabase.from('classes').select('*')
+      // Load all data in parallel using API client
+      const [classes, students, modulAjar, attendance, journals] = await Promise.all([
+        api.get('/classes'),
+        api.get('/students'),
+        api.get('/modul-ajar'),
+        api.get('/attendance'),
+        api.get('/journals'),
+      ])
 
-      // Load students
-      const { data: students } = await supabase.from('students').select('*')
-
-      // Load modul ajar
-      const { data: modulAjar } = await supabase
-        .from('modul_ajar')
-        .select('*')
-        .eq('teacher_id', userId)
-
-      // Load today's attendance
+      // Filter today's attendance
       const today = new Date().toISOString().split('T')[0]
-      const { data: todayAttendance } = await supabase
-        .from('student_attendance')
-        .select('*')
-        .eq('tanggal', today)
-
-      // Load recent teaching journals
-      const { data: journals } = await supabase
-        .from('teaching_journal')
-        .select('*, classes(name, grade)')
-        .eq('teacher_id', userId)
-        .order('tanggal', { ascending: false })
-        .limit(5)
+      const todayAttendance = attendance.filter(a => 
+        a.tanggal && a.tanggal.startsWith(today)
+      )
 
       setStats({
         totalKelas: classes?.length || 0,

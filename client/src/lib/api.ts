@@ -1,0 +1,141 @@
+// @ts-ignore - supabase.js doesn't have types but works fine
+import { supabase } from '../config/supabase';
+
+/**
+ * API Client for making authenticated requests to the backend
+ * Automatically handles token injection and error handling
+ */
+class ApiClient {
+  private baseURL: string;
+
+  constructor() {
+    // Use relative URL for API calls (same origin)
+    this.baseURL = '/api';
+  }
+
+  /**
+   * Get authentication token from Supabase session
+   */
+  private async getAuthToken(): Promise<string | null> {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      return session?.access_token || null;
+    } catch (error) {
+      console.error('Failed to get auth token:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Make HTTP request with automatic token injection
+   */
+  private async request<T = any>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<T> {
+    const token = await this.getAuthToken();
+
+    if (!token) {
+      throw new Error('Not authenticated. Please log in.');
+    }
+
+    const url = `${this.baseURL}${endpoint}`;
+    
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...options.headers,
+      },
+    });
+
+    // Handle non-OK responses
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({
+        error: 'Request failed',
+        message: response.statusText,
+      }));
+
+      throw new Error(errorData.message || errorData.error || 'Request failed');
+    }
+
+    // Handle empty responses (e.g., 204 No Content)
+    if (response.status === 204) {
+      return {} as T;
+    }
+
+    return response.json();
+  }
+
+  /**
+   * GET request
+   */
+  async get<T = any>(endpoint: string): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * POST request
+   */
+  async post<T = any>(endpoint: string, data?: any): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  /**
+   * PUT request
+   */
+  async put<T = any>(endpoint: string, data?: any): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  /**
+   * PATCH request
+   */
+  async patch<T = any>(endpoint: string, data?: any): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'PATCH',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  /**
+   * DELETE request
+   */
+  async delete<T = any>(endpoint: string): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'DELETE',
+    });
+  }
+
+  /**
+   * GET request with query parameters
+   */
+  async getWithParams<T = any>(
+    endpoint: string,
+    params: Record<string, any>
+  ): Promise<T> {
+    const queryString = new URLSearchParams(
+      Object.entries(params)
+        .filter(([_, value]) => value !== undefined && value !== null)
+        .map(([key, value]) => [key, String(value)])
+    ).toString();
+
+    const url = queryString ? `${endpoint}?${queryString}` : endpoint;
+    return this.get<T>(url);
+  }
+}
+
+// Export singleton instance
+export const api = new ApiClient();
+
+// Export class for testing
+export { ApiClient };

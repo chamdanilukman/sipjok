@@ -1,8 +1,15 @@
+import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
+import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || true,
+  credentials: true,
+}));
 
 declare module 'http' {
   interface IncomingMessage {
@@ -54,7 +61,6 @@ app.use((req, res, next) => {
     const message = err.message || "Internal Server Error";
 
     res.status(status).json({ message });
-    throw err;
   });
 
   // importantly only setup vite in development and after
@@ -74,7 +80,6 @@ app.use((req, res, next) => {
   server.listen({
     port,
     host: "0.0.0.0",
-    reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
   });

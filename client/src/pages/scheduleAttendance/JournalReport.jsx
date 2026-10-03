@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react'
-import { useDataContext } from '../../context/DataContext'
+import { useNotification } from '../../context/NotificationContext'
 import useTeachingJournal from '../../hooks/useTeachingJournal'
-import supabase from '../../config/supabase'
+import useClasses from '../../hooks/useClasses'
+import { api } from '../../lib/api'
 import { exportJournalReportToExcel, exportJournalReportToPDF } from '../../utils/exportJournal'
 
 export const JournalReport = () => {
-  const { showNotification } = useDataContext()
+  const { showNotification } = useNotification()
   const { loadJournalsByDateRange } = useTeachingJournal()
+  const { loadClasses: loadClassesHook } = useClasses()
 
   const [userId, setUserId] = useState(null)
   const [classes, setClasses] = useState([])
@@ -22,29 +24,19 @@ export const JournalReport = () => {
 
   useEffect(() => {
     const getCurrentUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        setUserId(user.id)
-        loadClasses(user.id)
+      try {
+        const user = await api.get('/auth/me')
+        if (user && user.id) {
+          setUserId(user.id)
+          const classData = await loadClassesHook()
+          setClasses(classData || [])
+        }
+      } catch (err) {
+        console.error('Error getting current user:', err)
       }
     }
     getCurrentUser()
-  }, [])
-
-  const loadClasses = async (teacherId) => {
-    try {
-      const { data, error } = await supabase
-        .from('classes')
-        .select('*')
-        .eq('teacher_id', teacherId)
-
-      if (error) throw error
-      setClasses(data || [])
-    } catch (err) {
-      console.error('Error loading classes:', err)
-      showNotification('Gagal memuat data kelas', 'error')
-    }
-  }
+  }, [loadClassesHook])
 
   const generateReport = async () => {
     if (!selectedClass) {
@@ -99,52 +91,24 @@ export const JournalReport = () => {
         return
       }
 
-      // Group by materi_pokok
+      // Group by materi
       const materiMap = new Map()
 
       filteredRecords.forEach((journal) => {
-        const materi = journal.materi_pokok || 'Tidak ada materi pokok'
-
+        const materi = journal.materi || 'Tidak ada materi'
         if (!materiMap.has(materi)) {
-          materiMap.set(materi, {
-            materi_pokok: materi,
-            totalSessions: 0,
-            metode: new Set(),
-          })
+          materiMap.set(materi, { materi, totalSessions: 0 })
         }
-
-        const materiData = materiMap.get(materi)
-        materiData.totalSessions++
-        if (journal.metode_pembelajaran) {
-          materiData.metode.add(journal.metode_pembelajaran)
-        }
+        materiMap.get(materi).totalSessions++
       })
 
-      // Convert Set to Array for metode
-      const reportArray = Array.from(materiMap.values()).map(item => ({
-        ...item,
-        metode: Array.from(item.metode)
-      }))
+      const reportArray = Array.from(materiMap.values())
 
-      // Calculate summary
       const totalJournals = filteredRecords.length
       const totalMateri = reportArray.length
       const uniqueDates = new Set(filteredRecords.map(j => j.tanggal)).size
-      const totalHadir = filteredRecords.reduce((sum, j) => sum + (j.jumlah_hadir || 0), 0)
-      const totalSakit = filteredRecords.reduce((sum, j) => sum + (j.jumlah_sakit || 0), 0)
-      const totalIzin = filteredRecords.reduce((sum, j) => sum + (j.jumlah_izin || 0), 0)
-      const totalAlpha = filteredRecords.reduce((sum, j) => sum + (j.jumlah_alpha || 0), 0)
 
-      const summaryData = {
-        totalJournals,
-        totalMateri,
-        uniqueDates,
-        avgSessionsPerMateri: totalMateri > 0 ? (totalJournals / totalMateri).toFixed(1) : 0,
-        totalHadir,
-        totalSakit,
-        totalIzin,
-        totalAlpha,
-      }
+      const summaryData = { totalJournals, totalMateri, uniqueDates, avgSessionsPerMateri: totalMateri > 0 ? (totalJournals / totalMateri).toFixed(1) : 0 }
 
       setReportData(reportArray)
       setSummary(summaryData)
@@ -334,35 +298,10 @@ export const JournalReport = () => {
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Kehadiran</p>
-                <p className="text-2xl font-bold text-gray-900">{summary.totalHadir}</p>
+                <p className="text-sm text-gray-600">Rata-rata Sesi/Materi</p>
+                <p className="text-2xl font-bold text-gray-900">{summary.avgSessionsPerMateri}</p>
               </div>
-              <i className="fas fa-user-check text-3xl text-orange-500"></i>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Additional Summary Stats */}
-      {summary && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Rekapitulasi Kehadiran</h3>
-          <div className="grid grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <p className="text-sm text-gray-600 mb-1">Hadir</p>
-              <p className="text-2xl font-bold text-green-600">{summary.totalHadir}</p>
-            </div>
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <p className="text-sm text-gray-600 mb-1">Sakit</p>
-              <p className="text-2xl font-bold text-blue-600">{summary.totalSakit}</p>
-            </div>
-            <div className="text-center p-4 bg-yellow-50 rounded-lg">
-              <p className="text-sm text-gray-600 mb-1">Izin</p>
-              <p className="text-2xl font-bold text-yellow-600">{summary.totalIzin}</p>
-            </div>
-            <div className="text-center p-4 bg-red-50 rounded-lg">
-              <p className="text-sm text-gray-600 mb-1">Alpha</p>
-              <p className="text-2xl font-bold text-red-600">{summary.totalAlpha}</p>
+              <i className="fas fa-chart-line text-3xl text-orange-500"></i>
             </div>
           </div>
         </div>
@@ -401,13 +340,10 @@ export const JournalReport = () => {
                     No
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Materi Pokok
+                    Materi
                   </th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Total Pertemuan
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Metode Pembelajaran
                   </th>
                 </tr>
               </thead>
@@ -418,25 +354,12 @@ export const JournalReport = () => {
                       {index + 1}
                     </td>
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                      {item.materi_pokok}
+                      {item.materi}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
                       <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
                         {item.totalSessions}x
                       </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {item.metode.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {item.metode.map((metode, idx) => (
-                            <span key={idx} className="inline-flex items-center px-2 py-1 rounded text-xs bg-gray-100 text-gray-700">
-                              {metode}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-gray-400 italic">-</span>
-                      )}
                     </td>
                   </tr>
                 ))}

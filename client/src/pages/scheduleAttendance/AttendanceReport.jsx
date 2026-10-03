@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { useDataContext } from '../../context/DataContext'
+import { useNotification } from '../../context/NotificationContext'
 import useStudentAttendance from '../../hooks/useStudentAttendance'
-import supabase from '../../config/supabase'
+import { api } from '../../lib/api'
 import { exportAttendanceReportToExcel, exportAttendanceReportToPDF } from '../../utils/exportAttendance'
 
 export const AttendanceReport = () => {
-  const { showNotification } = useDataContext()
+  const { showNotification } = useNotification()
   const {
     loading,
     error,
@@ -26,10 +26,14 @@ export const AttendanceReport = () => {
   // Get current user
   useEffect(() => {
     const getCurrentUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        setUserId(user.id)
-        loadClasses()
+      try {
+        const user = await api.get('/auth/me')
+        if (user && user.id) {
+          setUserId(user.id)
+          loadClasses()
+        }
+      } catch (err) {
+        console.error('Error getting current user:', err)
       }
     }
     getCurrentUser()

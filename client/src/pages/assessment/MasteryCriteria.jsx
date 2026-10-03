@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import { useDataContext } from '../../context/DataContext'
+import { useNotification } from '../../context/NotificationContext'
 import useKKTP from '../../hooks/useKKTP'
-import supabase from '../../config/supabase'
+import { api } from '../../lib/api'
 
 export const MasteryCriteria = () => {
-  const { showNotification } = useDataContext()
+  const { showNotification } = useNotification()
   const {
     kktpList,
     loading,
@@ -37,9 +37,7 @@ export const MasteryCriteria = () => {
   // Get current user and load data
   useEffect(() => {
     const getCurrentUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = await api.get('/auth/me')
       if (user) {
         setUserId(user.id)
         loadKKTP(user.id)
@@ -560,4 +558,6 @@ export const MasteryCriteria = () => {
 }
 
 export default MasteryCriteria
+
+
 

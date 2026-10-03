@@ -6,3 +6,7 @@ vite.config.ts.*
 *.tar.gz
 .env
 .env.local
+.kiro/
+.local/
+.commandcode/
+*.log

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useDataContext } from '../../context/DataContext'
+import { useNotification } from '../../context/NotificationContext'
 import useModulAjar from '../../hooks/useModulAjar'
 import useATP from '../../hooks/useATP'
 import ModuleCard from '../../components/learningPlanning/ModuleCard'
@@ -14,11 +14,11 @@ import ImportModulAjarModal from '../../components/learningPlanning/ImportModulA
 import UploadModulAjarModal from '../../components/learningPlanning/UploadModulAjarModal'
 import { PreviewModulAjar } from '../../components/learningPlanning/PreviewModulAjar'
 import { exportToPDF, exportToWord } from '../../utils/exportModulAjar'
-import supabase from '../../config/supabase'
+import { api } from '../../lib/api'
 import { useProfileContext } from '../../context/ProfileContext'
 
 export const LessonPlans = () => {
-  const { showNotification } = useDataContext()
+  const { showNotification } = useNotification()
   const { profile } = useProfileContext()
   const {
     modulList,
@@ -99,7 +99,7 @@ export const LessonPlans = () => {
   // Get current user and load data
   useEffect(() => {
     const getCurrentUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const user = await api.get('/auth/me')
       if (user) {
         setUserId(user.id)
         loadModulAjar(user.id)
@@ -798,4 +798,5 @@ export const LessonPlans = () => {
 }
 
 export default LessonPlans
+
 

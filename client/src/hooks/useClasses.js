@@ -1,24 +1,17 @@
 import { useState, useCallback } from 'react'
-import supabase from '../config/supabase'
+import { api } from '../lib/api'
 
 const useClasses = () => {
   const [classes, setClasses] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  // Load all classes for a teacher
-  const loadClasses = useCallback(async (teacherId) => {
+  // Load all classes for authenticated user
+  const loadClasses = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const { data, error: fetchError } = await supabase
-        .from('classes')
-        .select('*')
-        .eq('teacher_id', teacherId)
-        .order('grade', { ascending: true })
-        .order('name', { ascending: true })
-
-      if (fetchError) throw fetchError
+      const data = await api.get('/classes')
       setClasses(data || [])
       return data || []
     } catch (err) {
@@ -35,13 +28,7 @@ const useClasses = () => {
     setLoading(true)
     setError(null)
     try {
-      const { data, error: fetchError } = await supabase
-        .from('classes')
-        .select('*')
-        .eq('id', classId)
-        .single()
-
-      if (fetchError) throw fetchError
+      const data = await api.get(`/classes/${classId}`)
       return data
     } catch (err) {
       setError(err.message)
@@ -53,23 +40,13 @@ const useClasses = () => {
   }, [])
 
   // Create a new class
-  const createClass = useCallback(async (teacherId, classData) => {
+  const createClass = useCallback(async (classData) => {
     setLoading(true)
     setError(null)
     try {
-      const { data, error: insertError } = await supabase
-        .from('classes')
-        .insert([
-          {
-            ...classData,
-            teacher_id: teacherId,
-          },
-        ])
-        .select()
-
-      if (insertError) throw insertError
-      setClasses((prev) => [...prev, data[0]])
-      return data[0]
+      const data = await api.post('/classes', classData)
+      setClasses((prev) => [...prev, data])
+      return data
     } catch (err) {
       setError(err.message)
       console.error('Error creating class:', err)
@@ -84,15 +61,9 @@ const useClasses = () => {
     setLoading(true)
     setError(null)
     try {
-      const { data, error: updateError } = await supabase
-        .from('classes')
-        .update(updates)
-        .eq('id', classId)
-        .select()
-
-      if (updateError) throw updateError
-      setClasses((prev) => prev.map((c) => (c.id === classId ? data[0] : c)))
-      return data[0]
+      const data = await api.put(`/classes/${classId}`, updates)
+      setClasses((prev) => prev.map((c) => (c.id === classId ? data : c)))
+      return data
     } catch (err) {
       setError(err.message)
       console.error('Error updating class:', err)
@@ -107,12 +78,7 @@ const useClasses = () => {
     setLoading(true)
     setError(null)
     try {
-      const { error: deleteError } = await supabase
-        .from('classes')
-        .delete()
-        .eq('id', classId)
-
-      if (deleteError) throw deleteError
+      await api.delete(`/classes/${classId}`)
       setClasses((prev) => prev.filter((c) => c.id !== classId))
     } catch (err) {
       setError(err.message)
@@ -137,4 +103,3 @@ const useClasses = () => {
 }
 
 export default useClasses
-

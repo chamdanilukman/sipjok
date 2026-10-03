@@ -1,9 +1,9 @@
 import { useState, useCallback } from 'react'
-import supabase from '../config/supabase'
+import { api } from '../lib/api'
 
 /**
  * Custom hook for managing class schedules
- * Handles CRUD operations and conflict detection
+ * Handles CRUD operations
  */
 const useClassSchedule = () => {
   const [schedules, setSchedules] = useState([])
@@ -21,23 +21,13 @@ const useClassSchedule = () => {
   }
 
   /**
-   * Load schedules for a specific teacher
+   * Load schedules for authenticated user
    */
-  const loadSchedules = useCallback(async (teacherId) => {
+  const loadSchedules = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const { data, error: err } = await supabase
-        .from('class_schedules')
-        .select(`
-          *,
-          classes:class_id (id, name, grade)
-        `)
-        .eq('teacher_id', teacherId)
-        .order('day_of_week', { ascending: true })
-        .order('time_start', { ascending: true })
-
-      if (err) throw err
+      const data = await api.get('/schedules')
       setSchedules(data || [])
       return data || []
     } catch (err) {
@@ -56,14 +46,7 @@ const useClassSchedule = () => {
     setLoading(true)
     setError(null)
     try {
-      const { data, error: err } = await supabase
-        .from('class_schedules')
-        .select('*')
-        .eq('class_id', classId)
-        .order('day_of_week', { ascending: true })
-        .order('time_start', { ascending: true })
-
-      if (err) throw err
+      const data = await api.get(`/schedules/class/${classId}`)
       setSchedules(data || [])
       return data || []
     } catch (err) {
@@ -76,71 +59,15 @@ const useClassSchedule = () => {
   }, [])
 
   /**
-   * Check for schedule conflicts
-   */
-  const checkConflict = useCallback(async (teacherId, dayOfWeek, timeStart, timeEnd, excludeId = null) => {
-    try {
-      let query = supabase
-        .from('class_schedules')
-        .select('*')
-        .eq('teacher_id', teacherId)
-        .eq('day_of_week', dayOfWeek)
-
-      if (excludeId) {
-        query = query.neq('id', excludeId)
-      }
-
-      const { data, error: err } = await query
-
-      if (err) throw err
-
-      // Check for time overlap
-      const hasConflict = data.some((schedule) => {
-        const existingStart = schedule.time_start
-        const existingEnd = schedule.time_end
-        return !(timeEnd <= existingStart || timeStart >= existingEnd)
-      })
-
-      return hasConflict
-    } catch (err) {
-      console.error('Error checking conflict:', err)
-      throw err
-    }
-  }, [])
-
-  /**
    * Create a new schedule
    */
-  const createSchedule = useCallback(async (teacherId, scheduleData) => {
+  const createSchedule = useCallback(async (scheduleData) => {
     setLoading(true)
     setError(null)
     try {
-      // Check for conflicts
-      const hasConflict = await checkConflict(
-        teacherId,
-        scheduleData.day_of_week,
-        scheduleData.time_start,
-        scheduleData.time_end
-      )
-
-      if (hasConflict) {
-        throw new Error('Jadwal bentrok dengan jadwal yang sudah ada')
-      }
-
-      const { data, error: err } = await supabase
-        .from('class_schedules')
-        .insert([
-          {
-            ...scheduleData,
-            teacher_id: teacherId,
-          },
-        ])
-        .select()
-
-      if (err) throw err
-
-      setSchedules((prev) => [...prev, data[0]])
-      return data[0]
+      const data = await api.post('/schedules', scheduleData)
+      setSchedules((prev) => [...prev, data])
+      return data
     } catch (err) {
       setError(err.message)
       console.error('Error creating schedule:', err)
@@ -148,61 +75,26 @@ const useClassSchedule = () => {
     } finally {
       setLoading(false)
     }
-  }, [checkConflict])
+  }, [])
 
   /**
-   * Update an existing schedule
+   * Update a schedule
    */
-  const updateSchedule = useCallback(
-    async (scheduleId, updates) => {
-      setLoading(true)
-      setError(null)
-      try {
-        // Get current schedule to check conflicts
-        const currentSchedule = schedules.find((s) => s.id === scheduleId)
-        if (!currentSchedule) throw new Error('Schedule not found')
-
-        // Check for conflicts if time changed
-        if (
-          updates.day_of_week !== undefined ||
-          updates.time_start !== undefined ||
-          updates.time_end !== undefined
-        ) {
-          const hasConflict = await checkConflict(
-            currentSchedule.teacher_id,
-            updates.day_of_week || currentSchedule.day_of_week,
-            updates.time_start || currentSchedule.time_start,
-            updates.time_end || currentSchedule.time_end,
-            scheduleId
-          )
-
-          if (hasConflict) {
-            throw new Error('Jadwal bentrok dengan jadwal yang sudah ada')
-          }
-        }
-
-        const { data, error: err } = await supabase
-          .from('class_schedules')
-          .update(updates)
-          .eq('id', scheduleId)
-          .select()
-
-        if (err) throw err
-
-        setSchedules((prev) =>
-          prev.map((s) => (s.id === scheduleId ? data[0] : s))
-        )
-        return data[0]
-      } catch (err) {
-        setError(err.message)
-        console.error('Error updating schedule:', err)
-        throw err
-      } finally {
-        setLoading(false)
-      }
-    },
-    [schedules, checkConflict]
-  )
+  const updateSchedule = useCallback(async (scheduleId, updates) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await api.put(`/schedules/${scheduleId}`, updates)
+      setSchedules((prev) => prev.map((s) => (s.id === scheduleId ? data : s)))
+      return data
+    } catch (err) {
+      setError(err.message)
+      console.error('Error updating schedule:', err)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   /**
    * Delete a schedule
@@ -211,13 +103,7 @@ const useClassSchedule = () => {
     setLoading(true)
     setError(null)
     try {
-      const { error: err } = await supabase
-        .from('class_schedules')
-        .delete()
-        .eq('id', scheduleId)
-
-      if (err) throw err
-
+      await api.delete(`/schedules/${scheduleId}`)
       setSchedules((prev) => prev.filter((s) => s.id !== scheduleId))
     } catch (err) {
       setError(err.message)
@@ -228,20 +114,6 @@ const useClassSchedule = () => {
     }
   }, [])
 
-  /**
-   * Get day name from day number
-   */
-  const getDayName = useCallback((dayNumber) => {
-    return DAYS_OF_WEEK[dayNumber] || 'Unknown'
-  }, [])
-
-  /**
-   * Get schedules for a specific day
-   */
-  const getSchedulesByDay = useCallback((dayOfWeek) => {
-    return schedules.filter((s) => s.day_of_week === dayOfWeek)
-  }, [schedules])
-
   return {
     schedules,
     setSchedules,
@@ -250,14 +122,10 @@ const useClassSchedule = () => {
     DAYS_OF_WEEK,
     loadSchedules,
     loadSchedulesByClass,
-    checkConflict,
     createSchedule,
     updateSchedule,
     deleteSchedule,
-    getDayName,
-    getSchedulesByDay,
   }
 }
 
 export default useClassSchedule
-

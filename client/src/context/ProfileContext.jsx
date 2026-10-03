@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import useTeacherProfile from '../hooks/useTeacherProfile'
-import supabase from '../config/supabase'
+import { api } from '../lib/api'
 
 const ProfileContext = createContext()
 
@@ -17,8 +17,8 @@ export const ProfileProvider = ({ children }) => {
   useEffect(() => {
     const initializeUser = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
+        const user = await api.get('/auth/me')
+        if (user && user.id) {
           setUserId(user.id)
           await loadProfile(user.id)
         }

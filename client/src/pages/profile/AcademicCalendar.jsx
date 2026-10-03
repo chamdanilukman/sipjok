@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { useDataContext } from '../../context/DataContext'
+import { useNotification } from '../../context/NotificationContext'
 import useCalendarEvents from '../../hooks/useCalendarEvents'
-import supabase from '../../config/supabase'
+import { api } from '../../lib/api'
 import { getMonthName } from '../../utils/helpers'
 import { parseCalendarFile, downloadCalendarTemplate, downloadCalendarTemplateCSV, validateEvents } from '../../utils/calendarImport'
 
 export const AcademicCalendar = () => {
-  const { showNotification } = useDataContext()
+  const { showNotification } = useNotification()
   const { events, loading, error, CATEGORIES, loadEvents, createEvent, updateEvent, deleteEvent, getEventsForDate, getCategoryInfo } = useCalendarEvents()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [userId, setUserId] = useState(null)
@@ -31,10 +31,14 @@ export const AcademicCalendar = () => {
   // Get current user and load events
   useEffect(() => {
     const getCurrentUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        setUserId(user.id)
-        loadEvents(user.id, currentDate.getFullYear(), currentDate.getMonth())
+      try {
+        const user = await api.get('/auth/me')
+        if (user && user.id) {
+          setUserId(user.id)
+          loadEvents(user.id, currentDate.getFullYear(), currentDate.getMonth())
+        }
+      } catch (err) {
+        console.error('Error getting current user:', err)
       }
     }
     getCurrentUser()
@@ -182,16 +186,9 @@ export const AcademicCalendar = () => {
       setBulkUploading(true)
 
       // Insert all events
-      const eventsWithUser = importPreview.map(event => ({
-        ...event,
-        user_id: userId,
-      }))
-
-      const { error: importError } = await supabase
-        .from('calendar_events')
-        .insert(eventsWithUser)
-
-      if (importError) throw importError
+      for (const event of importPreview) {
+        await api.post('/calendar', { ...event, user_id: userId })
+      }
 
       showNotification(`${importPreview.length} event berhasil diimport!`, 'success')
       setShowBulkUploadModal(false)

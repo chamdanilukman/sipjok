@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { useDataContext } from '../../context/DataContext'
+import { useNotification } from '../../context/NotificationContext'
 import useCurriculumDocuments from '../../hooks/useCurriculumDocuments'
-import supabase from '../../config/supabase'
+import { api } from '../../lib/api'
 
 export const SchoolCurriculum = () => {
-  const { showNotification } = useDataContext()
+  const { showNotification } = useNotification()
   const { documents, loading, error, loadDocuments, uploadDocument, downloadDocument, deleteDocument } = useCurriculumDocuments()
   const [dragActive, setDragActive] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -17,10 +17,14 @@ export const SchoolCurriculum = () => {
   // Get current user
   useEffect(() => {
     const getCurrentUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        setUserId(user.id)
-        loadDocuments(user.id)
+      try {
+        const user = await api.get('/auth/me')
+        if (user && user.id) {
+          setUserId(user.id)
+          loadDocuments(user.id)
+        }
+      } catch (err) {
+        console.error('Error getting current user:', err)
       }
     }
     getCurrentUser()
@@ -113,30 +117,21 @@ export const SchoolCurriculum = () => {
 
   const handleAddToCalendar = async (doc) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
+      const user = await api.get('/auth/me')
+      if (!user || !user.id) {
         showNotification('User tidak ditemukan', 'error')
         return
       }
 
-      // Create calendar event for curriculum document
       const eventData = {
-        judul: `Implementasi: ${doc.judul || doc.file_name}`,
-        deskripsi: doc.deskripsi || `Dokumen ${doc.kategori} yang perlu diimplementasikan`,
-        kategori: 'kurikulum',
-        tanggal_mulai: new Date().toISOString().split('T')[0],
-        tanggal_selesai: new Date().toISOString().split('T')[0],
-        jam_mulai: '08:00',
-        jam_selesai: '10:00',
-        lokasi: 'Sekolah',
-        curriculum_document_id: doc.id,
+        title: `Implementasi: ${doc.title || doc.file_name}`,
+        description: doc.description || `Dokumen yang perlu diimplementasikan`,
+        event_type: 'kurikulum',
+        start_date: new Date().toISOString(),
+        end_date: new Date().toISOString(),
       }
 
-      const { error: calendarError } = await supabase
-        .from('calendar_events')
-        .insert([{ ...eventData, user_id: user.id }])
-
-      if (calendarError) throw calendarError
+      await api.post('/calendar', eventData)
 
       showNotification('Dokumen berhasil ditambahkan ke kalender', 'success')
     } catch (err) {

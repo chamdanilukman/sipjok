@@ -1,26 +1,17 @@
 import { useState, useCallback } from 'react'
-import supabase from '../config/supabase'
+import { api } from '../lib/api'
 
 const useStudents = () => {
   const [students, setStudents] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  // Load all students for a teacher
-  const loadStudents = useCallback(async (teacherId) => {
+  // Load all students for authenticated user
+  const loadStudents = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const { data, error: fetchError } = await supabase
-        .from('students')
-        .select(`
-          *,
-          class:classes(id, name, grade)
-        `)
-        .eq('teacher_id', teacherId)
-        .order('name', { ascending: true })
-
-      if (fetchError) throw fetchError
+      const data = await api.get('/students')
       setStudents(data || [])
       return data || []
     } catch (err) {
@@ -37,13 +28,7 @@ const useStudents = () => {
     setLoading(true)
     setError(null)
     try {
-      const { data, error: fetchError } = await supabase
-        .from('students')
-        .select('*')
-        .eq('class_id', classId)
-        .order('name', { ascending: true })
-
-      if (fetchError) throw fetchError
+      const data = await api.get(`/students/class/${classId}`)
       setStudents(data || [])
       return data || []
     } catch (err) {
@@ -60,16 +45,7 @@ const useStudents = () => {
     setLoading(true)
     setError(null)
     try {
-      const { data, error: fetchError } = await supabase
-        .from('students')
-        .select(`
-          *,
-          class:classes(id, name, grade)
-        `)
-        .eq('id', studentId)
-        .single()
-
-      if (fetchError) throw fetchError
+      const data = await api.get(`/students/${studentId}`)
       return data
     } catch (err) {
       setError(err.message)
@@ -81,23 +57,13 @@ const useStudents = () => {
   }, [])
 
   // Create a new student
-  const createStudent = useCallback(async (teacherId, studentData) => {
+  const createStudent = useCallback(async (studentData) => {
     setLoading(true)
     setError(null)
     try {
-      const { data, error: insertError } = await supabase
-        .from('students')
-        .insert([
-          {
-            ...studentData,
-            teacher_id: teacherId,
-          },
-        ])
-        .select()
-
-      if (insertError) throw insertError
-      setStudents((prev) => [...prev, data[0]])
-      return data[0]
+      const data = await api.post('/students', studentData)
+      setStudents((prev) => [...prev, data])
+      return data
     } catch (err) {
       setError(err.message)
       console.error('Error creating student:', err)
@@ -112,15 +78,9 @@ const useStudents = () => {
     setLoading(true)
     setError(null)
     try {
-      const { data, error: updateError } = await supabase
-        .from('students')
-        .update(updates)
-        .eq('id', studentId)
-        .select()
-
-      if (updateError) throw updateError
-      setStudents((prev) => prev.map((s) => (s.id === studentId ? data[0] : s)))
-      return data[0]
+      const data = await api.put(`/students/${studentId}`, updates)
+      setStudents((prev) => prev.map((s) => (s.id === studentId ? data : s)))
+      return data
     } catch (err) {
       setError(err.message)
       console.error('Error updating student:', err)
@@ -135,12 +95,7 @@ const useStudents = () => {
     setLoading(true)
     setError(null)
     try {
-      const { error: deleteError } = await supabase
-        .from('students')
-        .delete()
-        .eq('id', studentId)
-
-      if (deleteError) throw deleteError
+      await api.delete(`/students/${studentId}`)
       setStudents((prev) => prev.filter((s) => s.id !== studentId))
     } catch (err) {
       setError(err.message)
@@ -151,24 +106,18 @@ const useStudents = () => {
     }
   }, [])
 
-  // Search students by name or NIS
-  const searchStudents = useCallback(async (teacherId, keyword) => {
+  // Search students by name or NIS (client-side for now)
+  const searchStudents = useCallback(async (keyword) => {
     setLoading(true)
     setError(null)
     try {
-      const { data, error: fetchError } = await supabase
-        .from('students')
-        .select(`
-          *,
-          class:classes(id, name, grade)
-        `)
-        .eq('teacher_id', teacherId)
-        .or(`name.ilike.%${keyword}%,nis.ilike.%${keyword}%`)
-        .order('name', { ascending: true })
-
-      if (fetchError) throw fetchError
-      setStudents(data || [])
-      return data || []
+      const data = await api.get('/students')
+      const filtered = data.filter(s => 
+        s.name.toLowerCase().includes(keyword.toLowerCase()) ||
+        (s.nis && s.nis.toLowerCase().includes(keyword.toLowerCase()))
+      )
+      setStudents(filtered)
+      return filtered
     } catch (err) {
       setError(err.message)
       console.error('Error searching students:', err)
@@ -194,4 +143,3 @@ const useStudents = () => {
 }
 
 export default useStudents
-

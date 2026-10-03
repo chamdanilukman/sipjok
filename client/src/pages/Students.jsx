@@ -1,19 +1,23 @@
 import React, { useState, useEffect } from 'react'
-import { useDataContext } from '../context/DataContext'
+import { useNotification } from '../context/NotificationContext'
+import useClasses from '../hooks/useClasses'
+import useStudents from '../hooks/useStudents'
 
 export const Students = () => {
-  const { loading, error, loadKelas, loadSiswaByKelas, showNotification } = useDataContext()
+  const { showNotification } = useNotification()
+  const { loadClasses } = useClasses()
+  const { students: studentsList, loading, error, loadStudents, createStudent, updateStudent, deleteStudent } = useStudents()
+
   const [kelas, setKelas] = useState([])
-  const [selectedKelasId, setSelectedKelasId] = useState(null)
+  const [selectedKelasId, setSelectedKelasId] = useState('')
   const [siswa, setSiswa] = useState([])
   const [showForm, setShowForm] = useState(false)
+  const [editingStudentId, setEditingStudentId] = useState(null)
   const [formData, setFormData] = useState({
-    nama: '',
+    name: '',
     nis: '',
-    nisn: '',
-    kelas_id: '',
-    alamat: '',
-    telepon: '',
+    gender: '',
+    class_id: '',
   })
 
   useEffect(() => {
@@ -24,13 +28,13 @@ export const Students = () => {
     if (selectedKelasId) {
       loadSiswaData()
     }
-  }, [selectedKelasId])
+  }, [selectedKelasId, studentsList])
 
   const loadKelasData = async () => {
     try {
-      const data = await loadKelas()
-      setKelas(data)
-      if (data.length > 0) {
+      const data = await loadClasses()
+      setKelas(data || [])
+      if (data && data.length > 0 && !selectedKelasId) {
         setSelectedKelasId(data[0].id)
       }
     } catch (err) {
@@ -40,8 +44,9 @@ export const Students = () => {
 
   const loadSiswaData = async () => {
     try {
-      const data = await loadSiswaByKelas(selectedKelasId)
-      setSiswa(data)
+      await loadStudents()
+      const filtered = studentsList.filter(s => s.class_id === selectedKelasId)
+      setSiswa(filtered)
     } catch (err) {
       showNotification('Gagal memuat data siswa', 'error')
     }
@@ -49,164 +54,142 @@ export const Students = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }))
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleOpenForm = (student = null) => {
+    if (student) {
+      setEditingStudentId(student.id)
+      setFormData({
+        name: student.name || '',
+        nis: student.nis || '',
+        gender: student.gender || '',
+        class_id: student.class_id || selectedKelasId,
+      })
+    } else {
+      setEditingStudentId(null)
+      setFormData({
+        name: '',
+        nis: '',
+        gender: '',
+        class_id: selectedKelasId,
+      })
+    }
+    setShowForm(true)
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (!formData.name || !formData.gender || !formData.class_id) {
+      showNotification('Nama, jenis kelamin, dan kelas harus diisi', 'error')
+      return
+    }
+    if (formData.gender !== 'L' && formData.gender !== 'P') {
+      showNotification('Jenis kelamin harus L atau P', 'error')
+      return
+    }
+
     try {
-      // TODO: Implement save logic
-      showNotification('Data siswa berhasil disimpan', 'success')
+      if (editingStudentId) {
+        await updateStudent(editingStudentId, formData)
+        showNotification('Data siswa berhasil diperbarui', 'success')
+      } else {
+        await createStudent(formData)
+        showNotification('Data siswa berhasil ditambahkan', 'success')
+      }
       setShowForm(false)
-      setFormData({
-        nama: '',
-        nis: '',
-        nisn: '',
-        kelas_id: '',
-        alamat: '',
-        telepon: '',
-      })
-      loadSiswaData()
+      setEditingStudentId(null)
+      setFormData({ name: '', nis: '', gender: '', class_id: selectedKelasId })
+      await loadStudents()
     } catch (err) {
-      showNotification('Gagal menyimpan data siswa', 'error')
+      showNotification(err.message || 'Gagal menyimpan data siswa', 'error')
     }
   }
 
+  const handleDelete = async (id) => {
+    if (!window.confirm('Hapus siswa ini?')) return
+    try {
+      await deleteStudent(id)
+      showNotification('Siswa berhasil dihapus', 'success')
+      await loadStudents()
+    } catch (err) {
+      showNotification('Gagal menghapus siswa', 'error')
+    }
+  }
+
+  useEffect(() => {
+    if (studentsList && selectedKelasId) {
+      const filtered = studentsList.filter(s => s.class_id === selectedKelasId)
+      setSiswa(filtered)
+    }
+  }, [studentsList, selectedKelasId])
+
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Manajemen Siswa</h1>
           <p className="text-gray-600 mt-2">Kelola data siswa per kelas</p>
         </div>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="btn-primary flex items-center gap-2"
-        >
+        <button onClick={() => handleOpenForm()} className="btn-primary flex items-center gap-2">
           <i className="fas fa-plus"></i>
           Tambah Siswa
         </button>
       </div>
 
-      {/* Class Selection */}
       <div className="bg-white rounded-lg shadow-md p-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Pilih Kelas
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Pilih Kelas</label>
         <select
-          value={selectedKelasId || ''}
+          value={selectedKelasId}
           onChange={(e) => setSelectedKelasId(e.target.value)}
           className="input-field"
         >
           <option value="">-- Pilih Kelas --</option>
           {kelas.map((k) => (
-            <option key={k.id} value={k.id}>
-              {k.nama}
-            </option>
+            <option key={k.id} value={k.id}>{k.name} - Kelas {k.grade}</option>
           ))}
         </select>
       </div>
 
-      {/* Add Form */}
       {showForm && (
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Tambah Siswa Baru</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">
+            {editingStudentId ? 'Edit Siswa' : 'Tambah Siswa Baru'}
+          </h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nama Siswa
-                </label>
-                <input
-                  type="text"
-                  name="nama"
-                  value={formData.nama}
-                  onChange={handleInputChange}
-                  className="input-field"
-                  required
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nama Siswa *</label>
+                <input type="text" name="name" value={formData.name} onChange={handleInputChange} className="input-field" required />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  NIS
-                </label>
-                <input
-                  type="text"
-                  name="nis"
-                  value={formData.nis}
-                  onChange={handleInputChange}
-                  className="input-field"
-                  required
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-1">NIS</label>
+                <input type="text" name="nis" value={formData.nis} onChange={handleInputChange} className="input-field" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  NISN
-                </label>
-                <input
-                  type="text"
-                  name="nisn"
-                  value={formData.nisn}
-                  onChange={handleInputChange}
-                  className="input-field"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Jenis Kelamin *</label>
+                <select name="gender" value={formData.gender} onChange={handleInputChange} className="input-field" required>
+                  <option value="">-- Pilih --</option>
+                  <option value="L">Laki-laki</option>
+                  <option value="P">Perempuan</option>
+                </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Telepon
-                </label>
-                <input
-                  type="tel"
-                  name="telepon"
-                  value={formData.telepon}
-                  onChange={handleInputChange}
-                  className="input-field"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Alamat
-              </label>
-              <textarea
-                name="alamat"
-                value={formData.alamat}
-                onChange={handleInputChange}
-                className="input-field"
-                rows="3"
-              ></textarea>
             </div>
             <div className="flex gap-2">
-              <button type="submit" className="btn-primary">
-                Simpan
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="btn-secondary"
-              >
-                Batal
-              </button>
+              <button type="submit" className="btn-primary">Simpan</button>
+              <button type="button" onClick={() => { setShowForm(false); setEditingStudentId(null) }} className="btn-secondary">Batal</button>
             </div>
           </form>
         </div>
       )}
 
-      {/* Students List */}
       <div className="bg-white rounded-lg shadow-md p-6">
         <h2 className="text-xl font-bold text-gray-900 mb-4">Daftar Siswa</h2>
         {loading ? (
-          <div className="text-center py-8">
-            <i className="fas fa-spinner fa-spin text-2xl text-blue-600"></i>
-          </div>
+          <div className="text-center py-8"><i className="fas fa-spinner fa-spin text-2xl text-blue-600"></i></div>
         ) : error ? (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            <i className="fas fa-exclamation-circle mr-2"></i>
-            {error}
+            <i className="fas fa-exclamation-circle mr-2"></i>{error}
           </div>
         ) : siswa.length > 0 ? (
           <div className="overflow-x-auto">
@@ -216,7 +199,7 @@ export const Students = () => {
                   <th className="table-header">No</th>
                   <th className="table-header">Nama</th>
                   <th className="table-header">NIS</th>
-                  <th className="table-header">NISN</th>
+                  <th className="table-header">Jenis Kelamin</th>
                   <th className="table-header">Aksi</th>
                 </tr>
               </thead>
@@ -224,14 +207,14 @@ export const Students = () => {
                 {siswa.map((s, index) => (
                   <tr key={s.id} className="border-b hover:bg-gray-50">
                     <td className="table-cell">{index + 1}</td>
-                    <td className="table-cell">{s.nama}</td>
-                    <td className="table-cell">{s.nis}</td>
-                    <td className="table-cell">{s.nisn || '-'}</td>
+                    <td className="table-cell">{s.name}</td>
+                    <td className="table-cell">{s.nis || '-'}</td>
+                    <td className="table-cell">{s.gender === 'L' ? 'Laki-laki' : 'Perempuan'}</td>
                     <td className="table-cell">
-                      <button className="text-blue-600 hover:text-blue-800 mr-2">
+                      <button onClick={() => handleOpenForm(s)} className="text-blue-600 hover:text-blue-800 mr-2">
                         <i className="fas fa-edit"></i>
                       </button>
-                      <button className="text-red-600 hover:text-red-800">
+                      <button onClick={() => handleDelete(s.id)} className="text-red-600 hover:text-red-800">
                         <i className="fas fa-trash"></i>
                       </button>
                     </td>
@@ -252,4 +235,3 @@ export const Students = () => {
 }
 
 export default Students
-

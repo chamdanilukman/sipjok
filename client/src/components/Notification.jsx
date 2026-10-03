@@ -1,8 +1,8 @@
 import React from 'react'
-import { useDataContext } from '../context/DataContext'
+import { useNotification } from '../context/NotificationContext'
 
 export const Notification = () => {
-  const { notification, hideNotification } = useDataContext()
+  const { notification, hideNotification } = useNotification()
 
   if (!notification) return null
 

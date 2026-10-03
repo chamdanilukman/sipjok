@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react'
-import { useDataContext } from '../../context/DataContext'
+import { useNotification } from '../../context/NotificationContext'
 import useGrades from '../../hooks/useGrades'
 import useClasses from '../../hooks/useClasses'
 import useStudents from '../../hooks/useStudents'
 import useKKTP from '../../hooks/useKKTP'
-import supabase from '../../config/supabase'
+import { api } from '../../lib/api'
 import { exportGradesToExcel, exportGradesToPDF, printGrades } from '../../utils/exportGrades'
 
 export const GradeList = () => {
-  const { showNotification } = useDataContext()
+  const { showNotification } = useNotification()
   const {
     grades,
     loading: gradesLoading,
@@ -60,9 +60,7 @@ export const GradeList = () => {
   // Get current user and load data
   useEffect(() => {
     const getCurrentUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = await api.get('/auth/me')
       if (user) {
         setUserId(user.id)
         loadGrades(user.id)
@@ -1102,4 +1100,6 @@ export const GradeList = () => {
 }
 
 export default GradeList
+
+
 

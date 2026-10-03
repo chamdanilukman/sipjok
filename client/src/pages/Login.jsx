@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { signIn, isAuthenticated } from '../config/supabase'
 
 export const Login = () => {
-  const [email, setEmail] = useState('chamdani.lukman@gmail.com')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -130,19 +130,7 @@ export const Login = () => {
           <p className="mt-1">Untuk Guru PJOK SD</p>
         </div>
 
-        {/* Development Info */}
-        {import.meta.env.DEV && (
-          <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-xs text-yellow-800 font-semibold mb-2">
-              <i className="fas fa-info-circle mr-1"></i>
-              Development Mode
-            </p>
-            <p className="text-xs text-yellow-700">
-              Email: chamdani.lukman@gmail.com<br />
-              Password: lukman123
-            </p>
-          </div>
-        )}
+
       </div>
     </div>
   )

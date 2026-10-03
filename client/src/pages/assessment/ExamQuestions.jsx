@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import { useDataContext } from '../../context/DataContext'
+import { useNotification } from '../../context/NotificationContext'
 import useExamQuestions from '../../hooks/useExamQuestions'
-import supabase from '../../config/supabase'
+import { api } from '../../lib/api'
 
 export const ExamQuestions = () => {
-  const { showNotification } = useDataContext()
+  const { showNotification } = useNotification()
   const {
     questions,
     loading,
@@ -50,9 +50,7 @@ export const ExamQuestions = () => {
   // Get current user and load data
   useEffect(() => {
     const getCurrentUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = await api.get('/auth/me')
       if (user) {
         setUserId(user.id)
         loadQuestions(user.id)
@@ -812,4 +810,6 @@ export const ExamQuestions = () => {
 }
 
 export default ExamQuestions
+
+
 

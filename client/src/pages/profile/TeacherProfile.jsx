@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { useDataContext } from '../../context/DataContext'
+import { useNotification } from '../../context/NotificationContext'
 import useTeacherProfile from '../../hooks/useTeacherProfile'
-import supabase from '../../config/supabase'
+import { api } from '../../lib/api'
 
 export const TeacherProfile = () => {
-  const { showNotification } = useDataContext()
+  const { showNotification } = useNotification()
   const { profile, loading, error, loadProfile, saveProfile, uploadProfilePhoto, deleteProfilePhoto } = useTeacherProfile()
   const [formData, setFormData] = useState({
     nama_lengkap: '',
@@ -35,10 +35,14 @@ export const TeacherProfile = () => {
   // Get current user
   useEffect(() => {
     const getCurrentUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        setUserId(user.id)
-        loadProfile(user.id)
+      try {
+        const user = await api.get('/auth/me')
+        if (user && user.id) {
+          setUserId(user.id)
+          loadProfile(user.id)
+        }
+      } catch (err) {
+        console.error('Error getting current user:', err)
       }
     }
     getCurrentUser()

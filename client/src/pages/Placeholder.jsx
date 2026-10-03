@@ -2,28 +2,20 @@ import React from 'react'
 
 export const Placeholder = ({ title, description, icon }) => {
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
-        <p className="text-gray-600 mt-2">{description}</p>
+    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6">
+      <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-6">
+        <i className={`${icon} text-blue-600 text-4xl`}></i>
       </div>
-
-      {/* Content */}
-      <div className="bg-white rounded-lg shadow-md p-12 text-center">
-        <i className={`${icon} text-6xl text-blue-600 mb-4`}></i>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">{title}</h2>
-        <p className="text-gray-600 mb-6">Fitur ini sedang dalam pengembangan</p>
-        <div className="inline-block bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm text-blue-800">
-            <i className="fas fa-info-circle mr-2"></i>
-            Kembali ke dashboard untuk melihat fitur yang tersedia
-          </p>
-        </div>
+      <h2 className="text-2xl font-bold text-gray-800 mb-3">{title}</h2>
+      <p className="text-gray-500 max-w-md">{description}</p>
+      <div className="mt-8 px-6 py-3 bg-amber-50 border border-amber-200 rounded-lg">
+        <p className="text-sm text-amber-700">
+          <i className="fas fa-tools mr-2"></i>
+          Fitur ini sedang dalam pengembangan
+        </p>
       </div>
     </div>
   )
 }
 
 export default Placeholder
-
