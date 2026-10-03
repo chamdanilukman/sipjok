@@ -28,7 +28,7 @@ export const Students = () => {
     if (selectedKelasId) {
       loadSiswaData()
     }
-  }, [selectedKelasId, studentsList])
+  }, [selectedKelasId])
 
   const loadKelasData = async () => {
     try {
@@ -44,8 +44,9 @@ export const Students = () => {
 
   const loadSiswaData = async () => {
     try {
-      await loadStudents()
-      const filtered = studentsList.filter(s => s.class_id === selectedKelasId)
+      // gunakan hasil return (state studentsList masih nilai lama di closure ini)
+      const list = await loadStudents()
+      const filtered = (list || []).filter(s => s.class_id === selectedKelasId)
       setSiswa(filtered)
     } catch (err) {
       showNotification('Gagal memuat data siswa', 'error')
@@ -116,13 +117,6 @@ export const Students = () => {
       showNotification('Gagal menghapus siswa', 'error')
     }
   }
-
-  useEffect(() => {
-    if (studentsList && selectedKelasId) {
-      const filtered = studentsList.filter(s => s.class_id === selectedKelasId)
-      setSiswa(filtered)
-    }
-  }, [studentsList, selectedKelasId])
 
   return (
     <div className="space-y-6">
