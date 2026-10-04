@@ -75,3 +75,17 @@ konsisten, gerak minimal (transisi hover dan feedback notifikasi saja).
   "Catat Kunjungan", "Catat Refleksi", "Simpan", "Batal". Tanpa istilah
   marketing, tanpa em dash di teks apa pun.
 - Pesan notifikasi menyebut objeknya: "Jadwal kokurikuler berhasil ditambahkan".
+- **Data siswa & kelas menu sendiri**: pengelolaan siswa dan kelas TIDAK
+  bercampur dengan halaman presensi. Menu "Data Siswa & Kelas" (setelah
+  Dashboard) memuat dua halaman: `/data-siswa` (CRUD siswa dengan field
+  standar rapor: NIS, NISN, JK, tempat/tanggal lahir, agama, alamat, nama
+  ayah/ibu, pekerjaan orang tua, no. HP, asal sekolah) dan `/data-kelas`
+  (kelas rombel per TP, wali kelas, ruang, jumlah siswa). Halaman Buku
+  Absensi hanya mengisi absensi dan menyisipkan banner rujukan ke menu
+  tersebut; tombol Import Excel siswa tinggal di `/data-siswa`.
+- **Nama Kapital Huruf Depan**: nama orang (siswa, ayah, ibu) selalu
+  ditampilkan lewat `formatNama()` (`utils/formatNama.js`) dan dirapikan
+  lagi di server saat simpan (`titleCaseName` di `routes/students.ts`),
+  contoh "budi santoso" tampil "Budi Santoso", "muhammad al-fatih" tetap
+  satu kata depan kapital setelah tanda hubung. Data lama yang hurufnya
+  berantakan ikut tampil rapi tanpa perlu migrasi.

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNotification } from '../../context/NotificationContext'
+import { formatNama } from '../../utils/formatNama'
 import useStudentReflections, {
   PERASAAN_SISWA,
   PERTANYAAN_REFLEKSI,
@@ -140,7 +141,7 @@ export const StudentReflection = () => {
     }
   }
 
-  const studentNameOf = (r) => r.student?.name || '-'
+  const studentNameOf = (r) => formatNama(r.student?.name) || '-'
   const perasaanInfo = (r) => PERASAAN_SISWA[r.perasaan] || PERASAAN_SISWA.biasa
 
   const avgPaham = reflections.length

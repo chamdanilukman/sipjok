@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from 'react'
-import { useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useNotification } from '../../context/NotificationContext'
 import useStudentAttendance from '../../hooks/useStudentAttendance'
-import { useAcademicYear } from '../../context/AcademicYearContext'
-import ImportModal from '../../components/ImportModal'
+import { formatNama } from '../../utils/formatNama'
 import { api } from '../../lib/api'
 import { exportAttendanceToExcel, exportAttendanceToPDF, printAttendance } from '../../utils/exportAttendance'
 
 export const StudentAttendance = () => {
   const location = useLocation()
   const { showNotification } = useNotification()
-  const { availableYears, currentAcademicYear } = useAcademicYear()
   const {
     attendance,
     loading,
@@ -19,16 +17,10 @@ export const StudentAttendance = () => {
     loadAttendanceByDate,
     bulkSaveAttendance,
     getClassStatistics,
-    // Class management
+    // Kelas & siswa hanya dibaca untuk daftar absensi;
+    // pengelolaan pindah ke menu Data Siswa & Kelas (/data-kelas, /data-siswa)
     loadClasses: loadClassesHook,
-    createClass,
-    updateClass,
-    deleteClass,
-    // Student management
     loadStudentsByClass,
-    createStudent,
-    updateStudent,
-    deleteStudent,
   } = useStudentAttendance()
 
   const [userId, setUserId] = useState(null)
@@ -47,33 +39,6 @@ export const StudentAttendance = () => {
   const [attendanceData, setAttendanceData] = useState({})
   const [notesData, setNotesData] = useState({})
   const [showStats, setShowStats] = useState(false)
-
-  // Class management modal states
-  const [showClassModal, setShowClassModal] = useState(false)
-  const [classFormData, setClassFormData] = useState({
-    name: '',
-    grade: 1,
-    academic_year: '',
-    total_students: 0,
-    wali_kelas: '',
-    ruang_kelas: '',
-  })
-  const [editingClassId, setEditingClassId] = useState(null)
-
-  // Student management modal states
-  const [showStudentModal, setShowStudentModal] = useState(false)
-  const [studentFormData, setStudentFormData] = useState({
-    class_id: '',
-    name: '',
-    nis: '',
-    gender: '',
-  })
-  const [editingStudentId, setEditingStudentId] = useState(null)
-  const [studentModalClassId, setStudentModalClassId] = useState('')
-
-  // Import modal state
-  const [showImportModal, setShowImportModal] = useState(false)
-  const [studentsList, setStudentsList] = useState([])
 
   // Get current user and load data
   useEffect(() => {
@@ -144,72 +109,6 @@ export const StudentAttendance = () => {
     }
   }
 
-  // Class management functions
-  const handleOpenClassModal = (classData = null) => {
-    if (classData) {
-      setEditingClassId(classData.id)
-      setClassFormData({
-        name: classData.name || '',
-        grade: classData.grade || 1,
-        academic_year: classData.academic_year || '',
-        total_students: classData.total_students || 0,
-        wali_kelas: classData.wali_kelas || '',
-        ruang_kelas: classData.ruang_kelas || '',
-      })
-    } else {
-      setEditingClassId(null)
-      // TP default = tahun ajaran yang sedang berjalan (mulai Juli, bukan tahun kalender)
-      setClassFormData({
-        name: '',
-        grade: 1,
-        academic_year: currentAcademicYear,
-        total_students: 0,
-        wali_kelas: '',
-        ruang_kelas: '',
-      })
-    }
-    setShowClassModal(true)
-  }
-
-  const handleSaveClass = async () => {
-    try {
-      if (!classFormData.name || !classFormData.grade) {
-        showNotification('Nama kelas dan tingkat kelas harus diisi', 'error')
-        return
-      }
-
-      if (editingClassId) {
-        await updateClass(editingClassId, classFormData)
-        showNotification('Kelas berhasil diperbarui', 'success')
-      } else {
-        await createClass(classFormData)
-        showNotification('Kelas berhasil ditambahkan', 'success')
-      }
-
-      setShowClassModal(false)
-      loadClasses()
-    } catch (err) {
-      showNotification(err.message || 'Gagal menyimpan kelas', 'error')
-    }
-  }
-
-  const handleDeleteClass = async (classId) => {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus kelas ini?')) {
-      return
-    }
-
-    try {
-      await deleteClass(classId)
-      showNotification('Kelas berhasil dihapus', 'success')
-      loadClasses()
-      if (selectedClass === classId) {
-        setSelectedClass('')
-      }
-    } catch (err) {
-      showNotification(err.message || 'Gagal menghapus kelas', 'error')
-    }
-  }
-
   const loadStudents = async (classId) => {
     try {
       const data = await loadStudentsByClass(classId)
@@ -228,184 +127,6 @@ export const StudentAttendance = () => {
     } catch (err) {
       console.error('Error loading students:', err)
       showNotification('Gagal memuat data siswa', 'error')
-    }
-  }
-
-  // Student management functions
-  const handleOpenStudentModal = async (studentData = null) => {
-    if (studentData) {
-      setEditingStudentId(studentData.id)
-      setStudentFormData({
-        class_id: studentData.class_id,
-        name: studentData.name,
-        nis: studentData.nis || '',
-        gender: studentData.gender || '',
-      })
-      setStudentModalClassId(studentData.class_id)
-    } else {
-      setEditingStudentId(null)
-      setStudentFormData({
-        class_id: classes.length > 0 ? classes[0].id : '',
-        name: '',
-        nis: '',
-        gender: '',
-      })
-      setStudentModalClassId(classes.length > 0 ? classes[0].id : '')
-    }
-    setShowStudentModal(true)
-
-    // Load students for the modal
-    if (classes.length > 0) {
-      const classId = studentData ? studentData.class_id : classes[0].id
-      const studentsData = await loadStudentsByClass(classId)
-      setStudentsList(studentsData || [])
-    }
-  }
-
-  const handleStudentModalClassChange = async (classId) => {
-    setStudentModalClassId(classId)
-    const studentsData = await loadStudentsByClass(classId)
-    setStudentsList(studentsData || [])
-  }
-
-  const handleSaveStudent = async () => {
-    try {
-      if (!studentFormData.class_id || !studentFormData.name || !studentFormData.gender) {
-        showNotification('Kelas, nama, dan jenis kelamin wajib diisi', 'error')
-        return
-      }
-
-      if (editingStudentId) {
-        await updateStudent(editingStudentId, studentFormData)
-        showNotification('Siswa berhasil diperbarui', 'success')
-      } else {
-        await createStudent(studentFormData)
-        showNotification('Siswa berhasil ditambahkan', 'success')
-      }
-
-      setShowStudentModal(false)
-
-      // Reload students if current class is affected
-      if (selectedClass === studentFormData.class_id || selectedClass === studentModalClassId) {
-        loadStudents(selectedClass)
-      }
-
-      // Reload student list in modal
-      const studentsData = await loadStudentsByClass(studentModalClassId)
-      setStudentsList(studentsData || [])
-    } catch (err) {
-      showNotification(err.message || 'Gagal menyimpan siswa', 'error')
-    }
-  }
-
-  const handleDeleteStudent = async (studentId) => {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus siswa ini?')) {
-      return
-    }
-
-    try {
-      await deleteStudent(studentId)
-      showNotification('Siswa berhasil dihapus', 'success')
-
-      // Reload students
-      if (selectedClass) {
-        loadStudents(selectedClass)
-      }
-
-      // Reload student list in modal
-      if (studentModalClassId) {
-        const studentsData = await loadStudentsByClass(studentModalClassId)
-        setStudentsList(studentsData || [])
-      }
-    } catch (err) {
-      showNotification(err.message || 'Gagal menghapus siswa', 'error')
-    }
-  }
-
-  // Import students handler
-  const handleImportStudents = async (data) => {
-    try {
-      if (!userId) {
-        showNotification('User tidak ditemukan. Silakan login ulang.', 'error')
-        return
-      }
-
-      let successCount = 0
-      let errorCount = 0
-      const errors = []
-
-      for (const row of data) {
-        try {
-          // Helper function to get value case-insensitively
-          const getValue = (key) => {
-            const found = Object.keys(row).find(k => k.toLowerCase() === key.toLowerCase())
-            return found ? row[found] : undefined
-          }
-
-          // Find class by name (e.g., "1", "2", or "1A", "2B")
-          const className = getValue('kelas')
-          const targetClass = classes.find(cls => cls.name === className || cls.grade.toString() === className)
-
-          if (!targetClass) {
-            errors.push(`Kelas "${className}" tidak ditemukan untuk siswa ${getValue('nama')}`)
-            errorCount++
-            continue
-          }
-
-          // Get jenis_kelamin and normalize it
-          let jenisKelamin = getValue('jenis kelamin') || getValue('jenis_kelamin')
-          if (jenisKelamin) {
-            jenisKelamin = jenisKelamin.toUpperCase()
-            if (jenisKelamin === 'L' || jenisKelamin === 'LAKI-LAKI' || jenisKelamin === 'LAKI') {
-              jenisKelamin = 'Laki-laki'
-            } else if (jenisKelamin === 'P' || jenisKelamin === 'PEREMPUAN') {
-              jenisKelamin = 'Perempuan'
-            }
-          }
-
-          let gender = ''
-          if (jenisKelamin === 'Laki-laki' || jenisKelamin === 'L') gender = 'L'
-          if (jenisKelamin === 'Perempuan' || jenisKelamin === 'P') gender = 'P'
-          if (!gender) {
-            errors.push(`Jenis kelamin tidak valid untuk siswa ${getValue('nama')}`)
-            errorCount++
-            continue
-          }
-
-          await createStudent({
-            class_id: targetClass.id,
-            name: getValue('nama'),
-            nis: getValue('nis') || null,
-            gender,
-          })
-          successCount++
-        } catch (err) {
-          console.error('Error importing row:', row, err)
-          const nama = Object.keys(row).find(k => k.toLowerCase() === 'nama')
-          errors.push(`Error untuk ${nama ? row[nama] : 'siswa'}: ${err.message}`)
-          errorCount++
-        }
-      }
-
-      // Show detailed notification
-      if (errorCount > 0) {
-        showNotification(
-          `Import selesai! Berhasil: ${successCount}, Gagal: ${errorCount}\n${errors.slice(0, 3).join('\n')}`,
-          'warning'
-        )
-      } else {
-        showNotification(
-          `Import berhasil! ${successCount} siswa ditambahkan.`,
-          'success'
-        )
-      }
-
-      // Reload students if a class is selected
-      if (selectedClass) {
-        loadStudents(selectedClass)
-      }
-    } catch (error) {
-      showNotification('Error: ' + error.message, 'error')
     }
   }
 
@@ -494,41 +215,40 @@ export const StudentAttendance = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Buku Absensi Siswa</h1>
-          <p className="text-gray-600 mt-2">Kelola absensi siswa harian</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Buku Absensi Siswa</h1>
+          <p className="text-gray-600 mt-1 text-sm sm:text-base">Isi absensi harian per kelas</p>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => handleOpenClassModal()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        <button
+          onClick={() => setShowStats(!showStats)}
+          className="min-h-[44px] px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 active:scale-[0.98] transition-colors text-sm font-medium self-start sm:self-auto"
+        >
+          <i className="fas fa-chart-bar mr-2"></i>
+          Statistik
+        </button>
+      </div>
+
+      {/* Pengelolaan kelas & siswa kini menu terpisah */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-900 flex flex-col sm:flex-row sm:items-center gap-2">
+        <span className="flex-1">
+          <i className="fas fa-circle-info mr-2 text-blue-600"></i>
+          Menambah/mengedit kelas atau siswa, termasuk import Excel, kini ada di menu khusus.
+        </span>
+        <span className="flex gap-2">
+          <Link
+            to="/data-kelas"
+            className="min-h-[44px] inline-flex items-center px-3 py-1.5 bg-white border border-blue-300 rounded-lg text-blue-700 hover:bg-blue-100 font-medium"
           >
-            <i className="fas fa-school mr-2"></i>
-            Kelola Kelas
-          </button>
-          <button
-            onClick={() => handleOpenStudentModal()}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            <i className="fas fa-school mr-1.5"></i>Data Kelas
+          </Link>
+          <Link
+            to="/data-siswa"
+            className="min-h-[44px] inline-flex items-center px-3 py-1.5 bg-white border border-blue-300 rounded-lg text-blue-700 hover:bg-blue-100 font-medium"
           >
-            <i className="fas fa-users mr-2"></i>
-            Kelola Siswa
-          </button>
-          <button
-            onClick={() => setShowStats(!showStats)}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-          >
-            <i className="fas fa-chart-bar mr-2"></i>
-            Statistik
-          </button>
-          <button
-            onClick={() => setShowImportModal(true)}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-          >
-            <i className="fas fa-upload mr-2"></i>
-            Import Siswa
-          </button>
-        </div>
+            <i className="fas fa-user-graduate mr-1.5"></i>Data Siswa
+          </Link>
+        </span>
       </div>
 
       {error && (
@@ -659,7 +379,7 @@ export const StudentAttendance = () => {
               {students.map((student, index) => (
                 <tr key={student.id} className="border-b hover:bg-gray-50">
                   <td className="px-4 py-3 text-gray-700">{index + 1}</td>
-                  <td className="px-4 py-3 text-gray-700">{student.name}</td>
+                  <td className="px-4 py-3 text-gray-700 font-medium">{formatNama(student.name)}</td>
                   <td className="px-4 py-3 text-center">
                     <select
                       value={attendanceData[student.id] || 'hadir'}
@@ -716,315 +436,8 @@ export const StudentAttendance = () => {
         </div>
       )}
 
-      {/* Class Management Modal */}
-      {showClassModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-          <div className="bg-white rounded-lg shadow-lg p-6 max-w-4xl w-full mx-4 my-8">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">
-              Kelola Kelas
-            </h3>
-
-            {/* Class Form */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-4">
-              <h4 className="font-medium text-gray-900 mb-3">
-                {editingClassId ? 'Edit Kelas' : 'Tambah Kelas Baru'}
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nama Kelas *
-                  </label>
-                  <input
-                    type="text"
-                    value={classFormData.name ?? ''}
-                    onChange={(e) => setClassFormData({ ...classFormData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Contoh: 1A, 2B"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tingkat Kelas *
-                  </label>
-                  <select
-                    value={classFormData.grade ?? 1}
-                    onChange={(e) => setClassFormData({ ...classFormData, grade: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    {[1, 2, 3, 4, 5, 6].map((level) => (
-                      <option key={level} value={level}>
-                        Kelas {level}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tahun Ajaran
-                  </label>
-                  <select
-                    value={classFormData.academic_year ?? ''}
-                    onChange={(e) => setClassFormData({ ...classFormData, academic_year: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Pilih Tahun Ajaran</option>
-                    {availableYears.map((year) => (
-                      <option key={year} value={year}>
-                        TP {year}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="mt-1 text-xs text-gray-500">
-                    Menentukan TP mana data kelas ini tampil di Dashboard dan Rekap
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Wali Kelas
-                  </label>
-                  <input
-                    type="text"
-                    value={classFormData.wali_kelas ?? ''}
-                    onChange={(e) => setClassFormData({ ...classFormData, wali_kelas: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Nama Wali Kelas"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Ruang Kelas
-                  </label>
-                  <input
-                    type="text"
-                    value={classFormData.ruang_kelas ?? ''}
-                    onChange={(e) => setClassFormData({ ...classFormData, ruang_kelas: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Contoh: R101"
-                  />
-                </div>
-              </div>
-              <button
-                onClick={handleSaveClass}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <i className="fas fa-save mr-2"></i>
-                {editingClassId ? 'Update Kelas' : 'Tambah Kelas'}
-              </button>
-            </div>
-
-            {/* Class List */}
-            <div className="max-h-96 overflow-y-auto">
-              <table className="w-full">
-                <thead className="bg-gray-100 sticky top-0">
-                  <tr>
-                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Nama Kelas</th>
-                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Tingkat</th>
-                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Tahun Ajaran</th>
-                    <th className="px-4 py-2 text-center text-sm font-medium text-gray-700">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {classes.map((cls) => (
-                    <tr key={cls.id} className="border-b hover:bg-gray-50">
-                      <td className="px-4 py-3">{cls.name}</td>
-                      <td className="px-4 py-3">Kelas {cls.grade}</td>
-                      <td className="px-4 py-3">{cls.academic_year || '-'}</td>
-                      <td className="px-4 py-3 text-center">
-                        <button
-                          onClick={() => handleOpenClassModal(cls)}
-                          className="px-3 py-1 text-blue-600 hover:bg-blue-50 rounded transition-colors mr-2"
-                        >
-                          <i className="fas fa-edit"></i>
-                        </button>
-                        <button
-                          onClick={() => handleDeleteClass(cls.id)}
-                          className="px-3 py-1 text-red-600 hover:bg-red-50 rounded transition-colors"
-                        >
-                          <i className="fas fa-trash"></i>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="flex gap-2 mt-6">
-              <button
-                onClick={() => {
-                  setShowClassModal(false)
-                  setEditingClassId(null)
-                }}
-                className="flex-1 px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition-colors"
-              >
-                Tutup
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Student Management Modal */}
-      {showStudentModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-          <div className="bg-white rounded-lg shadow-lg p-6 max-w-4xl w-full mx-4 my-8">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">
-              Kelola Siswa
-            </h3>
-
-            {/* Class Selection for Student Modal */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Pilih Kelas untuk Melihat Siswa
-              </label>
-              <select
-                value={studentModalClassId}
-                onChange={(e) => handleStudentModalClassChange(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Pilih Kelas</option>
-                {classes.map((cls) => (
-                  <option key={cls.id} value={cls.id}>
-                    {cls.name} - Kelas {cls.grade}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Student Form */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-4">
-              <h4 className="font-medium text-gray-900 mb-3">
-                {editingStudentId ? 'Edit Siswa' : 'Tambah Siswa Baru'}
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Kelas *
-                  </label>
-                  <select
-                    value={studentFormData.class_id}
-                    onChange={(e) => setStudentFormData({ ...studentFormData, class_id: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Pilih Kelas</option>
-                    {classes.map((cls) => (
-                      <option key={cls.id} value={cls.id}>
-                        {cls.name} - Kelas {cls.grade}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nomor Induk
-                  </label>
-                  <input
-                    type="text"
-                    value={studentFormData.nis}
-                    onChange={(e) => setStudentFormData({ ...studentFormData, nis: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="001"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nama Lengkap *
-                  </label>
-                  <input
-                    type="text"
-                    value={studentFormData.name}
-                    onChange={(e) => setStudentFormData({ ...studentFormData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Nama Siswa"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Jenis Kelamin *
-                  </label>
-                  <select
-                    value={studentFormData.gender}
-                    onChange={(e) => setStudentFormData({ ...studentFormData, gender: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Pilih</option>
-                    <option value="L">Laki-laki</option>
-                    <option value="P">Perempuan</option>
-                  </select>
-                </div>
-              </div>
-              <button
-                onClick={handleSaveStudent}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-              >
-                <i className="fas fa-save mr-2"></i>
-                {editingStudentId ? 'Update Siswa' : 'Tambah Siswa'}
-              </button>
-            </div>
-
-            {/* Student List */}
-            {studentModalClassId && (
-              <div className="max-h-96 overflow-y-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-100 sticky top-0">
-                    <tr>
-                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">No. Induk</th>
-                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Nama Siswa</th>
-                      <th className="px-4 py-2 text-center text-sm font-medium text-gray-700">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {studentsList.map((student) => (
-                      <tr key={student.id} className="border-b hover:bg-gray-50">
-                        <td className="px-4 py-3">{student.nis || '-'}</td>
-                        <td className="px-4 py-3">{student.name}</td>
-                        <td className="px-4 py-3 text-center">
-                          <button
-                            onClick={() => handleOpenStudentModal(student)}
-                            className="px-3 py-1 text-blue-600 hover:bg-blue-50 rounded transition-colors mr-2"
-                          >
-                            <i className="fas fa-edit"></i>
-                          </button>
-                          <button
-                            onClick={() => handleDeleteStudent(student.id)}
-                            className="px-3 py-1 text-red-600 hover:bg-red-50 rounded transition-colors"
-                          >
-                            <i className="fas fa-trash"></i>
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            <div className="flex gap-2 mt-6">
-              <button
-                onClick={() => {
-                  setShowStudentModal(false)
-                  setEditingStudentId(null)
-                }}
-                className="flex-1 px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition-colors"
-              >
-                Tutup
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Import Modal */}
-      <ImportModal
-        isOpen={showImportModal}
-        onClose={() => setShowImportModal(false)}
-        onImport={handleImportStudents}
-        type="students"
-      />
     </div>
   )
 }
 
 export default StudentAttendance
-
-

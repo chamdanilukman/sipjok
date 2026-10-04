@@ -13,6 +13,28 @@ export const menuConfig = [
     children: null,
   },
   {
+    id: 'data-master',
+    label: 'Data Siswa & Kelas',
+    icon: 'fas fa-users-cog',
+    description: 'Kelola data siswa (standar rapor) dan kelas',
+    children: [
+      {
+        id: 'data-siswa',
+        label: 'Data Siswa',
+        path: '/data-siswa',
+        icon: 'fas fa-user-graduate',
+        description: 'Data lengkap siswa: identitas, ttl, alamat, orang tua/wali',
+      },
+      {
+        id: 'data-kelas',
+        label: 'Data Kelas',
+        path: '/data-kelas',
+        icon: 'fas fa-school',
+        description: 'Kelas rombel per tahun ajaran, wali kelas, dan ruang',
+      },
+    ],
+  },
+  {
     id: 'profile',
     label: 'Profil & Identitas',
     icon: 'fas fa-id-card',

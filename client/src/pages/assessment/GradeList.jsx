@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNotification } from '../../context/NotificationContext'
+import { formatNama } from '../../utils/formatNama'
 import useGrades from '../../hooks/useGrades'
 import useClasses from '../../hooks/useClasses'
 import useStudents from '../../hooks/useStudents'
@@ -538,7 +539,7 @@ export const GradeList = () => {
                           {index + 1}
                         </td>
                         <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                          {grade.student?.name || 'N/A'}
+                          {formatNama(grade.student?.name) || 'N/A'}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">
                           {grade.student?.nis || 'N/A'}
@@ -713,7 +714,7 @@ export const GradeList = () => {
                       <option value="">Pilih Siswa</option>
                       {students.map((student) => (
                         <option key={student.id} value={student.id}>
-                          {student.name} - {student.nis}
+                          {formatNama(student.name)} - {student.nis}
                         </option>
                       ))}
                     </select>
@@ -1050,7 +1051,7 @@ export const GradeList = () => {
                                 {index + 1}
                               </td>
                               <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                                {student.student_name}
+                                {formatNama(student.student_name)}
                               </td>
                               <td className="px-4 py-3 text-center">
                                 <input

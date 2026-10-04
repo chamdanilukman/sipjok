@@ -64,6 +64,8 @@ export const classes = pgTable("classes", {
   name: text("name").notNull(),
   grade: varchar("grade", { length: 10 }).notNull(),
   academic_year: varchar("academic_year", { length: 20 }),
+  wali_kelas: varchar("wali_kelas", { length: 150 }),
+  ruang_kelas: varchar("ruang_kelas", { length: 50 }),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -88,6 +90,17 @@ export const students = pgTable("students", {
   name: text("name").notNull(),
   nis: varchar("nis", { length: 50 }),
   gender: varchar("gender", { length: 1 }).notNull(), // L or P
+  // Data standar rapor (semua opsional agar data lama tetap valid)
+  nisn: varchar("nisn", { length: 20 }),
+  birth_place: varchar("birth_place", { length: 100 }), // tempat lahir
+  birth_date: date("birth_date"), // tanggal lahir
+  religion: varchar("religion", { length: 30 }), // agama
+  address: text("address"), // alamat domisili
+  father_name: varchar("father_name", { length: 150 }), // nama ayah
+  mother_name: varchar("mother_name", { length: 150 }), // nama ibu
+  parent_job: varchar("parent_job", { length: 150 }), // pekerjaan orang tua
+  parent_phone: varchar("parent_phone", { length: 30 }), // no. HP orang tua/wali
+  origin_school: varchar("origin_school", { length: 150 }), // asal sekolah (TK/PAUD/SD asal)
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
 });

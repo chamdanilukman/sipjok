@@ -6,6 +6,15 @@ import { authenticateUser } from '../middleware/auth';
 
 const router = Router();
 
+// Nama siswa selalu disimpan Kapital Huruf Depan: "budi santoso" -> "Budi Santoso",
+// "muhammad al-fatih" -> "Muhammad Al-Fatih" (kapital juga setelah tanda hubung/apostrof)
+const titleCaseName = (value: string) =>
+  String(value ?? '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase()
+    .replace(/(^|[\s\-'])([a-z])/g, (_m, p, c) => p + c.toUpperCase());
+
 /**
  * GET /api/students
  * Get all students for authenticated user's classes
@@ -119,7 +128,7 @@ router.post('/', authenticateUser, async (req, res, next) => {
     if (!parsed.success) {
       return res.status(400).json({ error: 'Validation Error', details: parsed.error.flatten() });
     }
-    const { class_id, name, nis, gender } = parsed.data;
+    const { class_id, name, gender } = parsed.data;
 
     // Validate required fields
     if (!class_id || !name || !gender) {
@@ -147,10 +156,8 @@ router.post('/', authenticateUser, async (req, res, next) => {
 
     const [newStudent] = await db.insert(students)
       .values({
-        class_id,
-        name,
-        nis,
-        gender,
+        ...parsed.data,
+        name: titleCaseName(name),
       })
       .returning();
 
@@ -170,7 +177,7 @@ router.put('/:id', authenticateUser, async (req, res, next) => {
     if (!parsed.success) {
       return res.status(400).json({ error: 'Validation Error', details: parsed.error.flatten() });
     }
-    const { class_id, name, nis, gender } = parsed.data;
+    const { class_id, name, gender } = parsed.data;
 
     // Validate required fields
     if (!name || !gender) {
@@ -230,10 +237,9 @@ router.put('/:id', authenticateUser, async (req, res, next) => {
 
     const [updated] = await db.update(students)
       .set({
+        ...parsed.data,
         class_id: class_id || student.class_id,
-        name,
-        nis,
-        gender,
+        name: titleCaseName(name),
         updated_at: new Date(),
       })
       .where(eq(students.id, req.params.id))

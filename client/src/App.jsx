@@ -13,7 +13,8 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 
 // All other pages are code-split per route
-const Students = lazy(() => import('./pages/Students'))
+const DataSiswa = lazy(() => import('./pages/dataMaster/DataSiswa'))
+const DataKelas = lazy(() => import('./pages/dataMaster/DataKelas'))
 
 // Profile & Identity
 const TeacherProfile = lazy(() => import('./pages/profile/TeacherProfile'))
@@ -72,7 +73,9 @@ function App() {
               <Route element={<Layout />}>
                 {/* Dashboard */}
                 <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                <Route path="/students" element={<ProtectedRoute><Students /></ProtectedRoute>} />
+                {/* Data Siswa & Kelas */}
+                <Route path="/data-siswa" element={<ProtectedRoute><DataSiswa /></ProtectedRoute>} />
+                <Route path="/data-kelas" element={<ProtectedRoute><DataKelas /></ProtectedRoute>} />
 
                 {/* Profile & Identity */}
                 <Route path="/profile/teacher-profile" element={<ProtectedRoute><TeacherProfile /></ProtectedRoute>} />

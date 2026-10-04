@@ -63,13 +63,15 @@ router.post('/', authenticateUser, async (req, res, next) => {
     if (!parsed.success) {
       return res.status(400).json({ error: 'Validation Error', details: parsed.error.flatten() });
     }
-    const { name, grade, academic_year } = parsed.data;
+    const { name, grade, academic_year, wali_kelas, ruang_kelas } = parsed.data;
 
     const [newClass] = await db.insert(classes)
       .values({
         name,
         grade,
         academic_year,
+        wali_kelas,
+        ruang_kelas,
         teacher_id: req.user!.id,
       })
       .returning();
@@ -90,7 +92,7 @@ router.put('/:id', authenticateUser, async (req, res, next) => {
     if (!parsed.success) {
       return res.status(400).json({ error: 'Validation Error', details: parsed.error.flatten() });
     }
-    const { name, grade, academic_year } = parsed.data;
+    const { name, grade, academic_year, wali_kelas, ruang_kelas } = parsed.data;
 
     if (!name || !grade || !academic_year) {
       return res.status(400).json({ error: 'Bad Request', message: 'Missing required fields' });
@@ -101,6 +103,8 @@ router.put('/:id', authenticateUser, async (req, res, next) => {
         name,
         grade,
         academic_year,
+        wali_kelas,
+        ruang_kelas,
         updated_at: new Date(),
       })
       .where(and(

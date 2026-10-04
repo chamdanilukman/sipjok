@@ -3,6 +3,7 @@ import { useNotification } from '../../context/NotificationContext'
 import useStudentAttendance from '../../hooks/useStudentAttendance'
 import { api } from '../../lib/api'
 import { useAcademicYear } from '../../context/AcademicYearContext'
+import { formatNama } from '../../utils/formatNama'
 import { exportAttendanceReportToExcel, exportAttendanceReportToPDF } from '../../utils/exportAttendance'
 
 // Server menyimpan status lowercase 'alpa'; 'alpha' dari data lama ikut dinormalisasi
@@ -125,7 +126,7 @@ export const AttendanceReport = () => {
       attendanceRecords.forEach((record) => {
         // Relasi API bernama `student` (bukan `students`)
         const studentId = record.student_id
-        const studentName = record.student?.name || 'Unknown'
+        const studentName = formatNama(record.student?.name) || 'Unknown'
         const studentNis = record.student?.nis || '-'
 
         if (!studentMap.has(studentId)) {
@@ -415,7 +416,7 @@ export const AttendanceReport = () => {
                   <tr key={student.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 text-sm text-gray-900">{index + 1}</td>
                     <td className="px-4 py-3 text-sm text-gray-900">{student.nis}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{student.name}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900 font-medium">{formatNama(student.name)}</td>
                     <td className="px-4 py-3 text-sm text-center font-semibold text-gray-900">{student.total}</td>
                     <td className="px-4 py-3 text-sm text-center text-green-600">{student.hadir}</td>
                     <td className="px-4 py-3 text-sm text-center text-yellow-600">{student.sakit}</td>
