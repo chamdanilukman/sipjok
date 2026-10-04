@@ -106,7 +106,7 @@ const useStudents = () => {
     }
   }, [])
 
-  // Search students by name or NIS (client-side for now)
+  // Cari siswa berdasar nama atau NISN (client-side untuk sekarang)
   const searchStudents = useCallback(async (keyword) => {
     setLoading(true)
     setError(null)
@@ -114,7 +114,7 @@ const useStudents = () => {
       const data = await api.get('/students')
       const filtered = data.filter(s => 
         s.name.toLowerCase().includes(keyword.toLowerCase()) ||
-        (s.nis && s.nis.toLowerCase().includes(keyword.toLowerCase()))
+        (s.nisn && s.nisn.toLowerCase().includes(keyword.toLowerCase()))
       )
       setStudents(filtered)
       return filtered

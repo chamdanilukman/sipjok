@@ -69,8 +69,7 @@ export const DataSiswa = () => {
         const nama = String(s.name || '').toLowerCase()
         return (
           nama.includes(q) ||
-          String(s.nis || '').toLowerCase().includes(q) ||
-          String(s.nisn || '').toLowerCase().includes(q)
+            String(s.nisn || '').toLowerCase().includes(q)
         )
       })
       .sort((a, b) => {
@@ -196,7 +195,8 @@ export const DataSiswa = () => {
         await createStudent({
           class_id: targetClass.id,
           name: formatNama(getValue('nama')),
-          nis: getValue('nis') ? String(getValue('nis')).trim() : null,
+          nisn: getValue('nisn') ? String(getValue('nisn')).trim() : null,
+          nis: (getValue('nipd') || getValue('nis')) ? String(getValue('nipd') || getValue('nis')).trim() : null,
           gender,
         })
         successCount++
@@ -274,7 +274,7 @@ export const DataSiswa = () => {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Nama, NIS, atau NISN..."
+              placeholder="Nama atau NISN..."
               className="w-full min-h-[44px] px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -335,7 +335,7 @@ export const DataSiswa = () => {
                 <tr>
                   <th className="px-3 sm:px-4 py-3 text-left font-semibold text-gray-700 w-12">No</th>
                   <th className="px-3 sm:px-4 py-3 text-left font-semibold text-gray-700">Nama Siswa</th>
-                  <th className="px-3 sm:px-4 py-3 text-left font-semibold text-gray-700 hidden md:table-cell">NIS / NISN</th>
+                  <th className="px-3 sm:px-4 py-3 text-left font-semibold text-gray-700 hidden md:table-cell">NISN</th>
                   <th className="px-3 sm:px-4 py-3 text-center font-semibold text-gray-700 hidden sm:table-cell">JK</th>
                   <th className="px-3 sm:px-4 py-3 text-left font-semibold text-gray-700">Kelas</th>
                   <th className="px-3 sm:px-4 py-3 text-left font-semibold text-gray-700 hidden lg:table-cell">Tempat, Tgl Lahir</th>
@@ -350,11 +350,10 @@ export const DataSiswa = () => {
                       <td className="px-3 sm:px-4 py-3 text-gray-500">{index + 1}</td>
                       <td className="px-3 sm:px-4 py-3">
                         <p className="font-medium text-gray-900">{formatNama(s.name)}</p>
-                        <p className="text-xs text-gray-500 md:hidden">{s.nis || s.nisn || '—'}</p>
+                        <p className="text-xs text-gray-500 md:hidden">{s.nisn || '—'}</p>
                       </td>
                       <td className="px-3 sm:px-4 py-3 text-gray-700 hidden md:table-cell">
-                        <p>{s.nis || '—'}</p>
-                        <p className="text-xs text-gray-500">{s.nisn || ''}</p>
+                        <p>{s.nisn || '—'}</p>
                       </td>
                       <td className="px-3 sm:px-4 py-3 text-center hidden sm:table-cell">
                         <span
@@ -437,12 +436,12 @@ export const DataSiswa = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">NIS</label>
-                    <input type="text" name="nis" value={formData.nis} onChange={handleInputChange} className="w-full min-h-[44px] px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nomor induk sekolah" />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">NISN</label>
+                    <input type="text" name="nisn" value={formData.nisn} onChange={handleInputChange} className="w-full min-h-[44px] px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nomor Induk Siswa Nasional (10 digit)" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">NISN</label>
-                    <input type="text" name="nisn" value={formData.nisn} onChange={handleInputChange} className="w-full min-h-[44px] px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nomor induk nasional (10 digit)" />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">NIPD / NIS (opsional)</label>
+                    <input type="text" name="nis" value={formData.nis} onChange={handleInputChange} className="w-full min-h-[44px] px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nomor induk sekolah — tidak ditampilkan" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Jenis Kelamin *</label>

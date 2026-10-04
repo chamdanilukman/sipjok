@@ -127,13 +127,13 @@ export const AttendanceReport = () => {
         // Relasi API bernama `student` (bukan `students`)
         const studentId = record.student_id
         const studentName = formatNama(record.student?.name) || 'Unknown'
-        const studentNis = record.student?.nis || '-'
+        const studentNisn = record.student?.nisn || '-'
 
         if (!studentMap.has(studentId)) {
           studentMap.set(studentId, {
             id: studentId,
             name: studentName,
-            nis: studentNis,
+            nisn: studentNisn,
             hadir: 0,
             sakit: 0,
             izin: 0,
@@ -401,7 +401,7 @@ export const AttendanceReport = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NIS</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NISN</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Siswa</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Hadir</th>
@@ -415,7 +415,7 @@ export const AttendanceReport = () => {
                 {reportData.map((student, index) => (
                   <tr key={student.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 text-sm text-gray-900">{index + 1}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{student.nis}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900">{student.nisn}</td>
                     <td className="px-4 py-3 text-sm text-gray-900 font-medium">{formatNama(student.name)}</td>
                     <td className="px-4 py-3 text-sm text-center font-semibold text-gray-900">{student.total}</td>
                     <td className="px-4 py-3 text-sm text-center text-green-600">{student.hadir}</td>

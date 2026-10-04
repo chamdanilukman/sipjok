@@ -9,7 +9,7 @@ export const exportAttendanceToExcel = (attendanceData, className, date) => {
   // Prepare data for Excel
   const excelData = attendanceData.map((record, index) => ({
     No: index + 1,
-    NIS: record.student?.nis || record.student?.student_number || '-',
+    NISN: record.student?.nisn || '-',
     'Nama Lengkap': record.student?.name || record.student?.nama_lengkap || '-',
     Kelas: className || '-',
     Tanggal: date || '-',
@@ -26,7 +26,7 @@ export const exportAttendanceToExcel = (attendanceData, className, date) => {
   // Set column widths
   ws['!cols'] = [
     { wch: 5 },  // No
-    { wch: 12 }, // NIS
+    { wch: 12 }, // NISN
     { wch: 25 }, // Nama
     { wch: 10 }, // Kelas
     { wch: 12 }, // Tanggal
@@ -60,7 +60,7 @@ export const exportAttendanceToPDF = (attendanceData, className, date) => {
   // Prepare table data
   const tableData = attendanceData.map((record, index) => [
     index + 1,
-    record.student?.nis || record.student?.student_number || '-',
+    record.student?.nisn || '-',
     record.student?.name || record.student?.nama_lengkap || '-',
     record.status === 'hadir' ? 'Hadir' :
     record.status === 'sakit' ? 'Sakit' :
@@ -71,7 +71,7 @@ export const exportAttendanceToPDF = (attendanceData, className, date) => {
   // Add table
   doc.autoTable({
     startY: 40,
-    head: [['No', 'NIS', 'Nama Lengkap', 'Status', 'Keterangan']],
+    head: [['No', 'NISN', 'Nama Lengkap', 'Status', 'Keterangan']],
     body: tableData,
     theme: 'grid',
     headStyles: {
@@ -201,7 +201,7 @@ export const printAttendance = (attendanceData, className, date) => {
         <thead>
           <tr>
             <th style="width: 40px;">No</th>
-            <th style="width: 100px;">NIS</th>
+            <th style="width: 100px;">NISN</th>
             <th>Nama Lengkap</th>
             <th style="width: 80px;">Status</th>
             <th>Keterangan</th>
@@ -211,7 +211,7 @@ export const printAttendance = (attendanceData, className, date) => {
           ${attendanceData.map((record, index) => `
             <tr>
               <td style="text-align: center;">${index + 1}</td>
-              <td style="text-align: center;">${record.student?.nis || record.student?.student_number || '-'}</td>
+              <td style="text-align: center;">${record.student?.nisn || '-'}</td>
               <td>${record.student?.name || record.student?.nama_lengkap || '-'}</td>
               <td style="text-align: center;">${
                 record.status === 'hadir' ? 'Hadir' :
@@ -263,7 +263,7 @@ export const printAttendance = (attendanceData, className, date) => {
 export const exportAttendanceReportToExcel = (reportData, className, period, summary) => {
   const excelData = reportData.map((student, index) => ({
     No: index + 1,
-    NIS: student.nis || '-',
+    NISN: student.nisn || '-',
     'Nama Lengkap': student.name || '-',
     Kelas: className || '-',
     Periode: period || '-',
@@ -278,7 +278,7 @@ export const exportAttendanceReportToExcel = (reportData, className, period, sum
   if (summary) {
     excelData.push({
       No: '',
-      NIS: '',
+      NISN: '',
       'Nama Lengkap': 'TOTAL',
       Kelas: '',
       Periode: '',
@@ -330,7 +330,7 @@ export const exportAttendanceReportToPDF = (reportData, className, period, summa
 
   const tableData = reportData.map((student, index) => [
     index + 1,
-    student.nis || '-',
+    student.nisn || '-',
     student.name || '-',
     student.total || 0,
     student.hadir || 0,
@@ -356,7 +356,7 @@ export const exportAttendanceReportToPDF = (reportData, className, period, summa
 
   doc.autoTable({
     startY: 40,
-    head: [['No', 'NIS', 'Nama Lengkap', 'Total', 'Hadir', 'Sakit', 'Izin', 'Alpha', '% Hadir']],
+    head: [['No', 'NISN', 'Nama Lengkap', 'Total', 'Hadir', 'Sakit', 'Izin', 'Alpha', '% Hadir']],
     body: tableData,
     theme: 'grid',
     headStyles: {

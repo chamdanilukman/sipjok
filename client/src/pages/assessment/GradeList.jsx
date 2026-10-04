@@ -516,7 +516,7 @@ export const GradeList = () => {
                         Nama Siswa
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                        NIS
+                        NISN
                       </th>
                       <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">
                         Nilai
@@ -542,7 +542,7 @@ export const GradeList = () => {
                           {formatNama(grade.student?.name) || 'N/A'}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">
-                          {grade.student?.nis || 'N/A'}
+                          {grade.student?.nisn || 'N/A'}
                         </td>
                         <td className="px-4 py-3 text-sm text-center text-gray-900">
                           {grade.score} / {grade.max_score}
@@ -714,7 +714,7 @@ export const GradeList = () => {
                       <option value="">Pilih Siswa</option>
                       {students.map((student) => (
                         <option key={student.id} value={student.id}>
-                          {formatNama(student.name)} - {student.nis}
+                          {formatNama(student.name)} - {student.nisn || '-'}
                         </option>
                       ))}
                     </select>

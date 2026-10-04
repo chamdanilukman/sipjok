@@ -89,3 +89,7 @@ konsisten, gerak minimal (transisi hover dan feedback notifikasi saja).
   contoh "budi santoso" tampil "Budi Santoso", "muhammad al-fatih" tetap
   satu kata depan kapital setelah tanda hubung. Data lama yang hurufnya
   berantakan ikut tampil rapi tanpa perlu migrasi.
+- **Identitas siswa yang tampil adalah NISN**: di semua menu (Data Siswa,
+  Rekap Absensi, Daftar Nilai, export Excel/PDF) yang ditampilkan kolom
+  NISN, bukan NIS/NIPD. NIPD tetap boleh disimpan di kolom `nis` untuk
+  arsip, tapi tidak boleh muncul di UI maupun cetakan.

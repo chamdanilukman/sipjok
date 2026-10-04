@@ -87,7 +87,6 @@ export const ImportModal = ({ isOpen, onClose, onImport, type = 'students' }) =>
         {
           'Kelas': '1A',
           'Nama': 'Ahmad Fauzi',
-          'NIS': '12345',
           'NISN': '0012345678',
           'Tempat Lahir': 'Jakarta',
           'Tanggal Lahir': '2015-01-15',
@@ -97,7 +96,6 @@ export const ImportModal = ({ isOpen, onClose, onImport, type = 'students' }) =>
         {
           'Kelas': '1A',
           'Nama': 'Siti Nurhaliza',
-          'NIS': '12346',
           'NISN': '0012345679',
           'Tempat Lahir': 'Bandung',
           'Tanggal Lahir': '2015-03-20',
@@ -107,7 +105,6 @@ export const ImportModal = ({ isOpen, onClose, onImport, type = 'students' }) =>
         {
           'Kelas': '2B',
           'Nama': 'Budi Santoso',
-          'NIS': '12347',
           'NISN': '0012345680',
           'Tempat Lahir': 'Surabaya',
           'Tanggal Lahir': '2014-05-10',

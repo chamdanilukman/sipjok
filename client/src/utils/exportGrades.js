@@ -9,7 +9,7 @@ export const exportGradesToExcel = (gradesData, className, semester) => {
   // Prepare data for Excel
   const excelData = gradesData.map((record, index) => ({
     No: index + 1,
-    NIS: record.student?.nis || '-',
+    NISN: record.student?.nisn || '-',
     'Nama Lengkap': record.student?.nama_lengkap || '-',
     Kelas: className || '-',
     Semester: semester || '-',
@@ -28,7 +28,7 @@ export const exportGradesToExcel = (gradesData, className, semester) => {
   // Set column widths
   ws['!cols'] = [
     { wch: 5 },  // No
-    { wch: 12 }, // NIS
+    { wch: 12 }, // NISN
     { wch: 25 }, // Nama
     { wch: 10 }, // Kelas
     { wch: 10 }, // Semester
@@ -66,7 +66,7 @@ export const exportGradesToPDF = (gradesData, className, semester) => {
   // Prepare table data
   const tableData = gradesData.map((record, index) => [
     index + 1,
-    record.student?.nis || '-',
+    record.student?.nisn || '-',
     record.student?.nama_lengkap || '-',
     record.pengetahuan || '-',
     record.keterampilan || '-',
@@ -78,7 +78,7 @@ export const exportGradesToPDF = (gradesData, className, semester) => {
   // Add table
   doc.autoTable({
     startY: 40,
-    head: [['No', 'NIS', 'Nama Lengkap', 'Pengetahuan', 'Keterampilan', 'Sikap', 'Nilai Akhir', 'Predikat']],
+    head: [['No', 'NISN', 'Nama Lengkap', 'Pengetahuan', 'Keterampilan', 'Sikap', 'Nilai Akhir', 'Predikat']],
     body: tableData,
     theme: 'grid',
     headStyles: {
@@ -210,7 +210,7 @@ export const printGrades = (gradesData, className, semester) => {
         <thead>
           <tr>
             <th style="width: 40px;">No</th>
-            <th style="width: 100px;">NIS</th>
+            <th style="width: 100px;">NISN</th>
             <th>Nama Lengkap</th>
             <th style="width: 100px;">Pengetahuan</th>
             <th style="width: 100px;">Keterampilan</th>
@@ -223,7 +223,7 @@ export const printGrades = (gradesData, className, semester) => {
           ${gradesData.map((record, index) => `
             <tr>
               <td style="text-align: center;">${index + 1}</td>
-              <td style="text-align: center;">${record.student?.nis || '-'}</td>
+              <td style="text-align: center;">${record.student?.nisn || '-'}</td>
               <td>${record.student?.nama_lengkap || '-'}</td>
               <td style="text-align: center;">${record.pengetahuan || '-'}</td>
               <td style="text-align: center;">${record.keterampilan || '-'}</td>
