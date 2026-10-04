@@ -115,7 +115,7 @@ export const ProfileProvider = ({ children }) => {
 
     // Derived values for easy access
     profilePhotoUrl: profile?.profile_photo_url || null,
-    teacherName: profile?.nama_lengkap || 'Guru PJOK',
+    teacherName: profile?.name || 'Guru PJOK',
     teacherEmail: profile?.email || '',
   }
 

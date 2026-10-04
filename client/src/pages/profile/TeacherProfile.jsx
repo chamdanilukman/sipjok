@@ -6,8 +6,10 @@ import { api } from '../../lib/api'
 export const TeacherProfile = () => {
   const { showNotification } = useNotification()
   const { profile, loading, error, loadProfile, saveProfile, uploadProfilePhoto, deleteProfilePhoto } = useTeacherProfile()
+  // Nama key form = nama kolom teacher_profile di DB agar tidak ada field
+  // yang terbuang saat disimpan (bug lama: hanya nip yang lolos validasi server)
   const [formData, setFormData] = useState({
-    nama_lengkap: '',
+    name: '',
     nip: '',
     nuptk: '',
     tempat_lahir: '',
@@ -17,6 +19,8 @@ export const TeacherProfile = () => {
     alamat: '',
     telepon: '',
     email: '',
+    school_name: '',
+    school_address: '',
     pendidikan_terakhir: '',
     jurusan: '',
     tahun_lulus: '',
@@ -52,7 +56,7 @@ export const TeacherProfile = () => {
   useEffect(() => {
     if (profile) {
       setFormData({
-        nama_lengkap: profile.nama_lengkap || '',
+        name: profile.name || '',
         nip: profile.nip || '',
         nuptk: profile.nuptk || '',
         tempat_lahir: profile.tempat_lahir || '',
@@ -60,8 +64,10 @@ export const TeacherProfile = () => {
         jenis_kelamin: profile.jenis_kelamin || '',
         agama: profile.agama || '',
         alamat: profile.alamat || '',
-        telepon: profile.telepon || '',
+        telepon: profile.phone || '',
         email: profile.email || '',
+        school_name: profile.school_name || '',
+        school_address: profile.school_address || '',
         pendidikan_terakhir: profile.pendidikan_terakhir || '',
         jurusan: profile.jurusan || '',
         tahun_lulus: profile.tahun_lulus || '',
@@ -135,7 +141,7 @@ export const TeacherProfile = () => {
     e.preventDefault()
 
     // Validation
-    if (!formData.nama_lengkap.trim()) {
+    if (!formData.name.trim()) {
       showNotification('Nama lengkap harus diisi', 'error')
       return
     }
@@ -231,8 +237,8 @@ export const TeacherProfile = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap *</label>
               <input
                 type="text"
-                name="nama_lengkap"
-                value={formData.nama_lengkap}
+                name="name"
+                value={formData.name}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
@@ -329,7 +335,7 @@ export const TeacherProfile = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Telepon</label>
               <input
                 type="tel"
-                name="telepon"
+                name="phone"
                 value={formData.telepon}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -341,6 +347,27 @@ export const TeacherProfile = () => {
                 type="email"
                 name="email"
                 value={formData.email}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nama Sekolah</label>
+              <input
+                type="text"
+                name="school_name"
+                value={formData.school_name}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Contoh: SD Negeri 3 Grobogan"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Alamat Sekolah</label>
+              <input
+                type="text"
+                name="school_address"
+                value={formData.school_address}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />

@@ -106,7 +106,7 @@ export const UploadModulAjarModal = ({ isOpen, onClose, onUpload, atpList, teach
         file_url: uploadResult.url,
         file_name: uploadResult.name || uploadedFile.name,
         file_type: uploadResult.type || uploadedFile.type,
-        teacher_name: teacherProfile?.nama_lengkap || teacherProfile?.name || 'Guru PJOK',
+        teacher_name: teacherProfile?.name || 'Guru PJOK',
         institusi: teacherProfile?.sekolah || teacherProfile?.institusi || 'SD Negeri',
         // Set default values for required fields
         capaian_pembelajaran: 'Lihat file terlampir',

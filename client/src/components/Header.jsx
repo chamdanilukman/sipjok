@@ -190,7 +190,7 @@ export const Header = ({ onMenuClick }) => {
               {/* User Info - Hidden on small mobile */}
               <div className="hidden md:block">
                 <p className="text-sm font-medium text-gray-900 text-left">
-                  {profile?.nama_lengkap || 'Guru PJOK'}
+                  {profile?.name || 'Guru PJOK'}
                 </p>
                 <p className="text-xs text-gray-500">Online</p>
               </div>
@@ -205,7 +205,7 @@ export const Header = ({ onMenuClick }) => {
                 {/* Header */}
                 <div className="px-4 py-3 border-b border-gray-200">
                   <p className="text-sm font-semibold text-gray-900">
-                    {profile?.nama_lengkap || 'Guru PJOK'}
+                    {profile?.name || 'Guru PJOK'}
                   </p>
                   <p className="text-xs text-gray-500">{profile?.email || 'guru@sekolah.id'}</p>
                 </div>

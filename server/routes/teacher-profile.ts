@@ -33,13 +33,12 @@ router.post('/', authenticateUser, async (req, res, next) => {
     if (!parsed.success) {
       return res.status(400).json({ error: 'Validation Error', details: parsed.error.flatten() });
     }
-    const { name, nip, school_name, school_address, phone, profile_photo_url, profile_photo_path } = parsed.data;
-    if (!name) {
+    if (!parsed.data.name) {
       return res.status(400).json({ error: 'Bad Request', message: 'Missing required field: name' });
     }
 
     const [newProfile] = await db.insert(teacherProfile)
-      .values({ user_id: req.user!.id, name, nip, school_name, school_address, phone, profile_photo_url, profile_photo_path })
+      .values({ ...parsed.data, user_id: req.user!.id })
       .returning();
     res.status(201).json(newProfile);
   } catch (error) {
@@ -53,24 +52,17 @@ router.put('/', authenticateUser, async (req, res, next) => {
     if (!parsed.success) {
       return res.status(400).json({ error: 'Validation Error', details: parsed.error.flatten() });
     }
-    const { name, nip, school_name, school_address, phone, profile_photo_url, profile_photo_path } = parsed.data;
+    const name = parsed.data.name;
+    // Spread semua field tervalidasi; key yang tak dikirim (undefined)
+    // dilewati drizzle sehingga update foto-only tidak menghapus data lain.
     const [updated] = await db.update(teacherProfile)
-      .set({
-        name: name || undefined,
-        nip,
-        school_name,
-        school_address,
-        phone,
-        profile_photo_url,
-        profile_photo_path,
-        updated_at: new Date(),
-      })
+      .set({ ...parsed.data, updated_at: new Date() })
       .where(eq(teacherProfile.user_id, req.user!.id))
       .returning();
     if (!updated) {
       // No row yet — upsert so the very first save from a fresh account works
       const [created] = await db.insert(teacherProfile)
-        .values({ user_id: req.user!.id, name: name || req.user!.email || 'Guru PJOK', nip, school_name, school_address, phone, profile_photo_url, profile_photo_path })
+        .values({ ...parsed.data, user_id: req.user!.id, name: name || req.user!.email || 'Guru PJOK' })
         .returning();
       return res.json(created);
     }
