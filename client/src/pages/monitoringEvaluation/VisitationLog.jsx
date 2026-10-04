@@ -4,7 +4,7 @@ import useVisitationLog, { JENIS_KUNJUNGAN, JABATAN_PENGUNJUNG } from '../../hoo
 import useClasses from '../../hooks/useClasses'
 import { api } from '../../lib/api'
 
-// Buku Kunjungan — catatan kunjungan/visitasi kelas digital (supervisi kepala
+// Buku Kunjungan - catatan kunjungan/visitasi kelas digital (supervisi kepala
 // sekolah, pengawas, atau kunjungan monitoring sarana)
 export const VisitationLog = () => {
   const { showNotification } = useNotification()
@@ -56,6 +56,16 @@ export const VisitationLog = () => {
     }
     getCurrentUser()
   }, [loadLogs, loadClassesHook])
+
+  // Modal bisa ditutup dengan Escape
+  useEffect(() => {
+    if (!showModal) return
+    const onKey = (e) => {
+      if (e.key === 'Escape') setShowModal(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [showModal])
 
   const handleOpenModal = (log = null) => {
     if (log) {
@@ -138,7 +148,7 @@ export const VisitationLog = () => {
     )
   })
 
-  const classNameOf = (l) => l.class?.name || l.lokasi || '—'
+  const classNameOf = (l) => l.class?.name || l.lokasi || '-'
 
   return (
     <div className="space-y-6">
@@ -162,7 +172,7 @@ export const VisitationLog = () => {
         <p className="text-sm text-blue-800">
           <i className="fas fa-info-circle mr-2"></i>
           Buku kunjungan mendokumentasikan supervisi kepala sekolah/pengawas, monitoring sarana, dan tindak
-          lanjutnya — mendukung pelaksanaan <strong>Pembelajaran Mendalam</strong> yang berkesadaran, bermakna,
+          lanjutnya, mendukung pelaksanaan <strong>Pembelajaran Mendalam</strong> yang berkesadaran, bermakna,
           dan menggembirakan (Permendikdasmen No. 13 Tahun 2025).
         </p>
       </div>
@@ -220,14 +230,14 @@ export const VisitationLog = () => {
                       )}
                     </div>
                     <h3 className="font-semibold text-gray-900">
-                      {l.pengunjung} <span className="text-sm font-normal text-gray-500">({l.jabatan || '—'})</span>
+                      {l.pengunjung} <span className="text-sm font-normal text-gray-500">({l.jabatan || '-'})</span>
                     </h3>
                   </div>
                   <div className="flex gap-1">
-                    <button onClick={() => handleOpenModal(l)} className="text-blue-600 hover:text-blue-800" title="Edit">
+                    <button onClick={() => handleOpenModal(l)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-blue-600 hover:bg-blue-50" title="Edit">
                       <i className="fas fa-edit"></i>
                     </button>
-                    <button onClick={() => handleDelete(l.id)} className="text-red-600 hover:text-red-800" title="Hapus">
+                    <button onClick={() => handleDelete(l.id)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-red-600 hover:bg-red-50" title="Hapus">
                       <i className="fas fa-trash"></i>
                     </button>
                   </div>
@@ -298,7 +308,7 @@ export const VisitationLog = () => {
                     onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="">— Bukan kunjungan kelas —</option>
+                    <option value="">Bukan kunjungan kelas</option>
                     {classes.map((c) => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}

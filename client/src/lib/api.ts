@@ -7,7 +7,7 @@ const TOKEN_KEY = 'sipjok_token';
 class ApiClient {
   private baseURL: string;
 
-  // Endpoints reachable without a session — the token guard must not block them
+  // Endpoints reachable without a session - the token guard must not block them
   private static PUBLIC_ENDPOINTS = ['/auth/login', '/health'];
 
   constructor() {

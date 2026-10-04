@@ -8,7 +8,7 @@ import useCompetitionRecords, {
 import useStudents from '../../hooks/useStudents'
 import { api } from '../../lib/api'
 
-// Catatan Peserta Lomba — dokumentasi partisipasi & prestasi siswa
+// Catatan Peserta Lomba - dokumentasi partisipasi & prestasi siswa
 // (alur pembinaan: O2SN → POPDA/Kejurda → PROVDA → POPNAS)
 export const CompetitionRecords = () => {
   const { showNotification } = useNotification()
@@ -59,6 +59,16 @@ export const CompetitionRecords = () => {
     }
     getCurrentUser()
   }, [loadRecords, loadStudents])
+
+  // Modal bisa ditutup dengan Escape
+  useEffect(() => {
+    if (!showModal) return
+    const onKey = (e) => {
+      if (e.key === 'Escape') setShowModal(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [showModal])
 
   const handleOpenModal = (record = null) => {
     if (record) {
@@ -241,7 +251,7 @@ export const CompetitionRecords = () => {
                 <th className="px-4 py-3 text-left font-semibold text-gray-700">Tingkat</th>
                 <th className="px-4 py-3 text-left font-semibold text-gray-700">Tanggal</th>
                 <th className="px-4 py-3 text-left font-semibold text-gray-700">Hasil</th>
-                <th className="px-4 py-3 text-center font-semibold text-gray-700 w-24">Aksi</th>
+                <th className="px-4 py-3 text-center font-semibold text-gray-700 w-28">Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -267,10 +277,10 @@ export const CompetitionRecords = () => {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <button onClick={() => handleOpenModal(r)} className="text-blue-600 hover:text-blue-800 mr-2" title="Edit">
+                      <button onClick={() => handleOpenModal(r)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-blue-600 hover:bg-blue-50" title="Edit">
                         <i className="fas fa-edit"></i>
                       </button>
-                      <button onClick={() => handleDelete(r.id)} className="text-red-600 hover:text-red-800" title="Hapus">
+                      <button onClick={() => handleDelete(r.id)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-red-600 hover:bg-red-50" title="Hapus">
                         <i className="fas fa-trash"></i>
                       </button>
                     </td>
@@ -298,7 +308,7 @@ export const CompetitionRecords = () => {
                   onChange={(e) => handleStudentChange(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="">— Peserta di luar data siswa —</option>
+                  <option value="">Peserta di luar data siswa</option>
                   {students.map((s) => (
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}

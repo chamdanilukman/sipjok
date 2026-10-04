@@ -5,10 +5,10 @@ import { ProfileProvider } from './context/ProfileContext'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 
-// Auth (eager — first paint)
+// Auth (eager - first paint)
 import Login from './pages/Login'
 
-// Dashboard (eager — landing page)
+// Dashboard (eager - landing page)
 import Dashboard from './pages/Dashboard'
 
 // All other pages are code-split per route

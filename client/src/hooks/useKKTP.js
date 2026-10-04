@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { api } from '../lib/api'
 
-// Rubrik level KKTP default (urut dari skor terendah) — dipakai form saat
+// Rubrik level KKTP default (urut dari skor terendah) - dipakai form saat
 // membuat kriteria baru sebelum guru mengubahnya
 export const DEFAULT_INDICATORS = [
   { level: 'Belum Berkembang', min_score: 0, max_score: 59, description: 'Perlu bimbingan penuh dalam melakukan gerakan dasar.' },

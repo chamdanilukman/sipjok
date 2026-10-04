@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { api } from '../lib/api'
 
-// Kategori event kalender akademik — class Tailwind ditulis literal agar
+// Kategori event kalender akademik - class Tailwind ditulis literal agar
 // tidak dibuang oleh purge/JIT (kelas dinamis `bg-${color}-*` tidak terdeteksi)
 export const CATEGORIES = {
   pembelajaran: { label: 'Pembelajaran', color: 'blue', badge: 'bg-blue-100 text-blue-800', dot: 'bg-blue-500' },

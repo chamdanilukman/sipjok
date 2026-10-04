@@ -7,7 +7,7 @@ import useExtracurricularPrograms, {
 } from '../../hooks/useExtracurricularPrograms'
 import { api } from '../../lib/api'
 
-// Program Ekstrakurikuler — Permendikdasmen No. 13 Tahun 2025: sekolah wajib
+// Program Ekstrakurikuler - Permendikdasmen No. 13 Tahun 2025: sekolah wajib
 // menyelenggarakan ekstrakurikuler; peserta didik mengikuti minimal satu kegiatan
 export const ExtracurricularPrograms = () => {
   const { showNotification } = useNotification()
@@ -49,6 +49,16 @@ export const ExtracurricularPrograms = () => {
     }
     getCurrentUser()
   }, [loadPrograms])
+
+  // Modal bisa ditutup dengan Escape
+  useEffect(() => {
+    if (!showModal) return
+    const onKey = (e) => {
+      if (e.key === 'Escape') setShowModal(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [showModal])
 
   const handleOpenModal = (program = null) => {
     if (program) {
@@ -190,10 +200,10 @@ export const ExtracurricularPrograms = () => {
                     </span>
                   </div>
                   <div className="flex gap-1">
-                    <button onClick={() => handleOpenModal(p)} className="text-blue-600 hover:text-blue-800" title="Edit">
+                    <button onClick={() => handleOpenModal(p)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-blue-600 hover:bg-blue-50" title="Edit">
                       <i className="fas fa-edit"></i>
                     </button>
-                    <button onClick={() => handleDelete(p.id)} className="text-red-600 hover:text-red-800" title="Hapus">
+                    <button onClick={() => handleDelete(p.id)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-red-600 hover:bg-red-50" title="Hapus">
                       <i className="fas fa-trash"></i>
                     </button>
                   </div>

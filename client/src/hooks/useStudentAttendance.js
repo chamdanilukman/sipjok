@@ -3,7 +3,7 @@ import { api } from '../lib/api'
 import useClasses from './useClasses'
 import useStudents from './useStudents'
 
-// Status absensi — label & warna dipakai tombol penandaan + badge sel tabel
+// Status absensi - label & warna dipakai tombol penandaan + badge sel tabel
 export const ATTENDANCE_STATUS = {
   hadir: { label: 'Hadir', color: 'green' },
   sakit: { label: 'Sakit', color: 'yellow' },

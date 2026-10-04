@@ -7,7 +7,7 @@ import useCocurricularPrograms, {
 } from '../../hooks/useCocurricularPrograms'
 import { api } from '../../lib/api'
 
-// Program Kokurikuler — perencanaan kegiatan penguatan 8 Dimensi Profil
+// Program Kokurikuler - perencanaan kegiatan penguatan 8 Dimensi Profil
 // Lulusan (Permendikdasmen No. 13 Tahun 2025, menggantikan istilah P5)
 const FASE_OPTIONS = [
   { value: 'A', label: 'Fase A (Kelas 1-3)' },
@@ -57,6 +57,16 @@ export const CocurricularPrograms = () => {
     }
     getCurrentUser()
   }, [loadPrograms])
+
+  // Modal bisa ditutup dengan Escape
+  useEffect(() => {
+    if (!showModal) return
+    const onKey = (e) => {
+      if (e.key === 'Escape') setShowModal(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [showModal])
 
   const getDimensiInfo = (key) => DIMENSI_PROFIL_LULUSAN.find((d) => d.key === key)
   const dimensiList = (p) =>
@@ -193,10 +203,10 @@ export const CocurricularPrograms = () => {
                     {statusInfo.label}
                   </span>
                   <div className="flex gap-1">
-                    <button onClick={() => handleOpenModal(p)} className="text-blue-600 hover:text-blue-800" title="Edit">
+                    <button onClick={() => handleOpenModal(p)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-blue-600 hover:bg-blue-50" title="Edit">
                       <i className="fas fa-edit"></i>
                     </button>
-                    <button onClick={() => handleDelete(p.id)} className="text-red-600 hover:text-red-800" title="Hapus">
+                    <button onClick={() => handleDelete(p.id)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-red-600 hover:bg-red-50" title="Hapus">
                       <i className="fas fa-trash"></i>
                     </button>
                   </div>
@@ -255,7 +265,7 @@ export const CocurricularPrograms = () => {
                     onChange={(e) => setFormData({ ...formData, tema: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="">— Pilih tema —</option>
+                    <option value="">Pilih tema</option>
                     {TEMA_KOKURIKULER.map((t) => (
                       <option key={t} value={t}>{t}</option>
                     ))}

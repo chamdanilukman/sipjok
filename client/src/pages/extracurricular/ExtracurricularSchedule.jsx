@@ -4,7 +4,7 @@ import useExtracurricularSchedule, { DAYS_OF_WEEK } from '../../hooks/useExtracu
 import useExtracurricularPrograms from '../../hooks/useExtracurricularPrograms'
 import { api } from '../../lib/api'
 
-// Jadwal Ekstrakurikuler — penjadwalan latihan/sesi kegiatan ekstrakurikuler
+// Jadwal Ekstrakurikuler - penjadwalan latihan/sesi kegiatan ekstrakurikuler
 export const ExtracurricularSchedule = () => {
   const { showNotification } = useNotification()
   const {
@@ -47,6 +47,16 @@ export const ExtracurricularSchedule = () => {
     }
     getCurrentUser()
   }, [loadSchedules, loadPrograms])
+
+  // Modal bisa ditutup dengan Escape
+  useEffect(() => {
+    if (!showModal) return
+    const onKey = (e) => {
+      if (e.key === 'Escape') setShowModal(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [showModal])
 
   const handleOpenModal = (schedule = null) => {
     if (schedule) {
@@ -155,13 +165,13 @@ export const ExtracurricularSchedule = () => {
             <div key={s.id} className="bg-white rounded-lg shadow-md p-5">
               <div className="flex items-start justify-between mb-2">
                 <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">
-                  {DAYS_OF_WEEK[s.day_of_week] || '—'}
+                  {DAYS_OF_WEEK[s.day_of_week] || '-'}
                 </span>
                 <div className="flex gap-1">
-                  <button onClick={() => handleOpenModal(s)} className="text-blue-600 hover:text-blue-800" title="Edit">
+                  <button onClick={() => handleOpenModal(s)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-blue-600 hover:bg-blue-50" title="Edit">
                     <i className="fas fa-edit"></i>
                   </button>
-                  <button onClick={() => handleDelete(s.id)} className="text-red-600 hover:text-red-800" title="Hapus">
+                  <button onClick={() => handleDelete(s.id)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-red-600 hover:bg-red-50" title="Hapus">
                     <i className="fas fa-trash"></i>
                   </button>
                 </div>
@@ -219,7 +229,7 @@ export const ExtracurricularSchedule = () => {
                   onChange={(e) => setFormData({ ...formData, program_id: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="">— Tidak terkait program —</option>
+                  <option value="">Tidak terkait program</option>
                   {programs.map((p) => (
                     <option key={p.id} value={p.id}>{p.nama}</option>
                   ))}

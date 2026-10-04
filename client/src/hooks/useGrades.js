@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import { api } from '../lib/api'
 
 // Kolom score/max_score bertipe numeric (zod drizzle-zod hanya menerima string);
-// halaman mengirim angka — serialisasi dilakukan di sini.
+// halaman mengirim angka - serialisasi dilakukan di sini.
 const serialize = (g) => ({
   ...g,
   score: g.score !== undefined && g.score !== null && g.score !== '' ? String(g.score) : g.score,

@@ -4,7 +4,7 @@ import useCocurricularModules from '../../hooks/useCocurricularModules'
 import useCocurricularPrograms, { TEMA_KOKURIKULER } from '../../hooks/useCocurricularPrograms'
 import { api } from '../../lib/api'
 
-// Modul Kokurikuler — repositori materi dan sumber daya kegiatan kokurikuler
+// Modul Kokurikuler - repositori materi dan sumber daya kegiatan kokurikuler
 export const CocurricularModules = () => {
   const { showNotification } = useNotification()
   const {
@@ -51,6 +51,16 @@ export const CocurricularModules = () => {
     }
     getCurrentUser()
   }, [loadModules, loadPrograms])
+
+  // Modal bisa ditutup dengan Escape
+  useEffect(() => {
+    if (!showModal) return
+    const onKey = (e) => {
+      if (e.key === 'Escape') setShowModal(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [showModal])
 
   const handleOpenModal = (mod = null) => {
     if (mod) {
@@ -186,10 +196,10 @@ export const CocurricularModules = () => {
                   {m.status === 'publikasi' ? 'Publikasi' : 'Draft'}
                 </span>
                 <div className="flex gap-1">
-                  <button onClick={() => handleOpenModal(m)} className="text-blue-600 hover:text-blue-800" title="Edit">
+                  <button onClick={() => handleOpenModal(m)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-blue-600 hover:bg-blue-50" title="Edit">
                     <i className="fas fa-edit"></i>
                   </button>
-                  <button onClick={() => handleDelete(m.id)} className="text-red-600 hover:text-red-800" title="Hapus">
+                  <button onClick={() => handleDelete(m.id)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-red-600 hover:bg-red-50" title="Hapus">
                     <i className="fas fa-trash"></i>
                   </button>
                 </div>
@@ -240,7 +250,7 @@ export const CocurricularModules = () => {
                   onChange={(e) => setFormData({ ...formData, program_id: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="">— Tidak terkait program —</option>
+                  <option value="">Tidak terkait program</option>
                   {programs.map((p) => (
                     <option key={p.id} value={p.id}>{p.judul}</option>
                   ))}
@@ -255,7 +265,7 @@ export const CocurricularModules = () => {
                     onChange={(e) => setFormData({ ...formData, tema: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="">— Pilih tema —</option>
+                    <option value="">Pilih tema</option>
                     {TEMA_KOKURIKULER.map((t) => (
                       <option key={t} value={t}>{t}</option>
                     ))}

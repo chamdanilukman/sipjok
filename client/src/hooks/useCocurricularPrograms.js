@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { api } from '../lib/api'
 
-// Tema kokurikuler (berlanjut dari tema P5 — Permendikdasmen 13/2025)
+// Tema kokurikuler (berlanjut dari tema P5 - Permendikdasmen 13/2025)
 export const TEMA_KOKURIKULER = [
   'Bangunlah Jiwa dan Raganya',
   'Gaya Hidup Berkelanjutan',
@@ -13,16 +13,18 @@ export const TEMA_KOKURIKULER = [
   'Kebekerjaan',
 ]
 
-// 8 Dimensi Profil Lulusan — Permendikdasmen No. 10 & 13 Tahun 2025
+// 8 Dimensi Profil Lulusan - Permendikdasmen No. 10 & 13 Tahun 2025.
+// Chip memakai satu gaya warna yang sama (palet ketat, R-29): hierarki datang
+// dari teks label, bukan warna.
 export const DIMENSI_PROFIL_LULUSAN = [
-  { key: 'keimanan', label: 'Keimanan dan Ketakwaan kepada Tuhan YME', badge: 'bg-emerald-100 text-emerald-800' },
-  { key: 'kewargaan', label: 'Kewargaan', badge: 'bg-blue-100 text-blue-800' },
-  { key: 'penalaran_kritis', label: 'Penalaran Kritis', badge: 'bg-purple-100 text-purple-800' },
-  { key: 'kreativitas', label: 'Kreativitas', badge: 'bg-pink-100 text-pink-800' },
-  { key: 'kolaborasi', label: 'Kolaborasi', badge: 'bg-orange-100 text-orange-800' },
-  { key: 'kemandirian', label: 'Kemandirian', badge: 'bg-cyan-100 text-cyan-800' },
-  { key: 'kesehatan', label: 'Kesehatan', badge: 'bg-lime-100 text-lime-800' },
-  { key: 'komunikasi', label: 'Komunikasi', badge: 'bg-amber-100 text-amber-800' },
+  { key: 'keimanan', label: 'Keimanan dan Ketakwaan kepada Tuhan YME', badge: 'bg-blue-50 text-blue-700' },
+  { key: 'kewargaan', label: 'Kewargaan', badge: 'bg-blue-50 text-blue-700' },
+  { key: 'penalaran_kritis', label: 'Penalaran Kritis', badge: 'bg-blue-50 text-blue-700' },
+  { key: 'kreativitas', label: 'Kreativitas', badge: 'bg-blue-50 text-blue-700' },
+  { key: 'kolaborasi', label: 'Kolaborasi', badge: 'bg-blue-50 text-blue-700' },
+  { key: 'kemandirian', label: 'Kemandirian', badge: 'bg-blue-50 text-blue-700' },
+  { key: 'kesehatan', label: 'Kesehatan', badge: 'bg-blue-50 text-blue-700' },
+  { key: 'komunikasi', label: 'Komunikasi', badge: 'bg-blue-50 text-blue-700' },
 ]
 
 export const STATUS_PROGRAM = {

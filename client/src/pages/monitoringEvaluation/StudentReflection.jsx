@@ -9,7 +9,7 @@ import useClasses from '../../hooks/useClasses'
 import useStudents from '../../hooks/useStudents'
 import { api } from '../../lib/api'
 
-// Refleksi Siswa — jurnal refleksi diri pasca pembelajaran PJOK, mengikuti
+// Refleksi Siswa - jurnal refleksi diri pasca pembelajaran PJOK, mengikuti
 // pengalaman belajar "merefleksi" dalam kerangka Pembelajaran Mendalam
 // (Permendikdasmen No. 13 Tahun 2025)
 export const StudentReflection = () => {
@@ -62,6 +62,16 @@ export const StudentReflection = () => {
     }
     getCurrentUser()
   }, [loadReflections, loadClassesHook, loadStudents])
+
+  // Modal bisa ditutup dengan Escape
+  useEffect(() => {
+    if (!showModal) return
+    const onKey = (e) => {
+      if (e.key === 'Escape') setShowModal(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [showModal])
 
   const filtered = filterClassId ? reflections.filter((r) => r.class_id === filterClassId) : reflections
 
@@ -130,7 +140,7 @@ export const StudentReflection = () => {
     }
   }
 
-  const studentNameOf = (r) => r.student?.name || '—'
+  const studentNameOf = (r) => r.student?.name || '-'
   const perasaanInfo = (r) => PERASAAN_SISWA[r.perasaan] || PERASAAN_SISWA.biasa
 
   const avgPaham = reflections.length
@@ -159,7 +169,7 @@ export const StudentReflection = () => {
         <p className="text-sm text-blue-800">
           <i className="fas fa-info-circle mr-2"></i>
           Refleksi merupakan bagian pengalaman belajar <strong>merefleksi</strong> dalam kerangka Pembelajaran
-          Mendalam (berkesadaran, bermakna, menggembirakan) — <strong>Permendikdasmen No. 13 Tahun 2025</strong>.
+          Mendalam (berkesadaran, bermakna, menggembirakan), sesuai <strong>Permendikdasmen No. 13 Tahun 2025</strong>.
           Tiga pertanyaan refleksi: {Object.values(PERTANYAAN_REFLEKSI).join(' ')}
         </p>
       </div>
@@ -239,14 +249,14 @@ export const StudentReflection = () => {
                       {pInfo.emoji} {pInfo.label}
                     </span>
                     <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">
-                      {r.class?.name || '—'}
+                      {r.class?.name || '-'}
                     </span>
                   </div>
                   <div className="flex gap-1">
-                    <button onClick={() => handleOpenModal(r)} className="text-blue-600 hover:text-blue-800" title="Edit">
+                    <button onClick={() => handleOpenModal(r)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-blue-600 hover:bg-blue-50" title="Edit">
                       <i className="fas fa-edit"></i>
                     </button>
-                    <button onClick={() => handleDelete(r.id)} className="text-red-600 hover:text-red-800" title="Hapus">
+                    <button onClick={() => handleDelete(r.id)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-red-600 hover:bg-red-50" title="Hapus">
                       <i className="fas fa-trash"></i>
                     </button>
                   </div>

@@ -4,7 +4,7 @@ import useCocurricularSchedule, { DAYS_OF_WEEK } from '../../hooks/useCocurricul
 import useCocurricularPrograms from '../../hooks/useCocurricularPrograms'
 import { api } from '../../lib/api'
 
-// Jadwal Kokurikuler — kegiatan penguatan 8 dimensi profil lulusan
+// Jadwal Kokurikuler - kegiatan penguatan 8 dimensi profil lulusan
 // (Permendikdasmen No. 13 Tahun 2025, Pasal 16)
 export const CocurricularSchedule = () => {
   const { showNotification } = useNotification()
@@ -47,6 +47,16 @@ export const CocurricularSchedule = () => {
     }
     getCurrentUser()
   }, [loadSchedules, loadPrograms])
+
+  // Modal bisa ditutup dengan Escape
+  useEffect(() => {
+    if (!showModal) return
+    const onKey = (e) => {
+      if (e.key === 'Escape') setShowModal(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [showModal])
 
   const handleOpenModal = (schedule = null) => {
     if (schedule) {
@@ -136,7 +146,7 @@ export const CocurricularSchedule = () => {
           <i className="fas fa-info-circle mr-2"></i>
           Kokurikuler adalah kegiatan penguatan <strong>8 Dimensi Profil Lulusan</strong> melalui pembelajaran
           kolaboratif lintas mata pelajaran, termasuk integrasi <strong>7 Kebiasaan Anak Indonesia Hebat</strong>{' '}
-          (bangun pagi, beribadah, berolahraga, makan sehat, gemar belajar, bermasyarakat, tidur cepat) —{' '}
+          (bangun pagi, beribadah, berolahraga, makan sehat, gemar belajar, bermasyarakat, tidur cepat), sesuai{' '}
           <strong>Permendikdasmen No. 13 Tahun 2025</strong>.
         </p>
       </div>
@@ -164,13 +174,13 @@ export const CocurricularSchedule = () => {
             <div key={s.id} className="bg-white rounded-lg shadow-md p-5">
               <div className="flex items-start justify-between mb-2">
                 <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">
-                  {DAYS_OF_WEEK[s.day_of_week] || '—'}
+                  {DAYS_OF_WEEK[s.day_of_week] || '-'}
                 </span>
                 <div className="flex gap-1">
-                  <button onClick={() => handleOpenModal(s)} className="text-blue-600 hover:text-blue-800" title="Edit">
+                  <button onClick={() => handleOpenModal(s)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-blue-600 hover:bg-blue-50" title="Edit">
                     <i className="fas fa-edit"></i>
                   </button>
-                  <button onClick={() => handleDelete(s.id)} className="text-red-600 hover:text-red-800" title="Hapus">
+                  <button onClick={() => handleDelete(s.id)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-red-600 hover:bg-red-50" title="Hapus">
                     <i className="fas fa-trash"></i>
                   </button>
                 </div>
@@ -223,7 +233,7 @@ export const CocurricularSchedule = () => {
                   onChange={(e) => setFormData({ ...formData, program_id: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="">— Tidak terkait program —</option>
+                  <option value="">Tidak terkait program</option>
                   {programs.map((p) => (
                     <option key={p.id} value={p.id}>{p.judul}</option>
                   ))}

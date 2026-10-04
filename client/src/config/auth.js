@@ -2,7 +2,7 @@ import { api } from '../lib/api'
 
 /**
  * Internal authentication helpers (JWT issued by the Express backend).
- * Replaces the old Supabase Auth client — same function names, so call
+ * Replaces the old Supabase Auth client - same function names, so call
  * sites in Login/ProtectedRoute/Header stay familiar.
  *
  * The `users.username` column is the login identity and holds the email.
@@ -20,7 +20,7 @@ export const signIn = async (email, password) => {
 }
 
 /**
- * Sign out — just drops the local token.
+ * Sign out - just drops the local token.
  */
 export const signOut = async () => {
   api.clearToken()
