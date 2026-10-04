@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useNotification } from '../../context/NotificationContext'
 import useTeachingJournal from '../../hooks/useTeachingJournal'
 import useClasses from '../../hooks/useClasses'
 import { api } from '../../lib/api'
+import { useAcademicYear } from '../../context/AcademicYearContext'
 import { exportJournalReportToExcel, exportJournalReportToPDF } from '../../utils/exportJournal'
 
 export const JournalReport = () => {
   const { showNotification } = useNotification()
   const { loadJournalsByDateRange } = useTeachingJournal()
   const { loadClasses: loadClassesHook } = useClasses()
+  const { academicYear, registerClassYears, currentAcademicYear } = useAcademicYear()
 
   const [userId, setUserId] = useState(null)
   const [classes, setClasses] = useState([])
@@ -16,7 +18,6 @@ export const JournalReport = () => {
   const [reportType, setReportType] = useState('monthly')
   const [selectedMonth, setSelectedMonth] = useState('')
   const [selectedSemester, setSelectedSemester] = useState('1')
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [loading, setLoading] = useState(false)
   const [reportData, setReportData] = useState([])
   const [summary, setSummary] = useState(null)
@@ -30,13 +31,41 @@ export const JournalReport = () => {
           setUserId(user.id)
           const classData = await loadClassesHook()
           setClasses(classData || [])
+          registerClassYears(classData)
         }
       } catch (err) {
         console.error('Error getting current user:', err)
       }
     }
     getCurrentUser()
-  }, [loadClassesHook])
+  }, [loadClassesHook, registerClassYears])
+
+  // Bulan default = bulan berjalan; tanpa ini rekap Bulanan selalu menolak
+  useEffect(() => {
+    const now = new Date()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    setSelectedMonth(`${now.getFullYear()}-${month}`)
+  }, [])
+
+  // Kelas milik TP terpilih; kelas lama tanpa tahun ajaran dianggap TP berjalan
+  const tpClasses = useMemo(() => {
+    const yearOf = (c) => String(c.academic_year || '').trim()
+    let list = classes.filter((c) => yearOf(c) === academicYear)
+    const legacyFallback =
+      list.length === 0 &&
+      academicYear === currentAcademicYear &&
+      classes.length > 0 &&
+      !classes.some((c) => yearOf(c))
+    if (legacyFallback) list = classes
+    return { list, legacyFallback }
+  }, [classes, academicYear, currentAcademicYear])
+
+  // Saat TP berganti, pilihan kelas direset bila kelasnya bukan milik TP baru
+  useEffect(() => {
+    if (selectedClass && !tpClasses.list.some((c) => c.id === selectedClass)) {
+      setSelectedClass(tpClasses.list[0]?.id || '')
+    }
+  }, [tpClasses, selectedClass])
 
   const generateReport = async () => {
     if (!selectedClass) {
@@ -62,19 +91,24 @@ export const JournalReport = () => {
         const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
         period = `${monthNames[parseInt(month) - 1]} ${year}`
       } else if (reportType === 'semester') {
+        // Semester mengikuti TP terpilih: Semester 1 = Jul-Des tahun awal,
+        // Semester 2 = Jan-Jun tahun berikutnya
+        const startYear = parseInt(academicYear, 10)
         if (selectedSemester === '1') {
-          startDate = `${selectedYear}-01-01`
-          endDate = `${selectedYear}-06-30`
-          period = `Semester 1 ${selectedYear}`
+          startDate = `${startYear}-07-01`
+          endDate = `${startYear}-12-31`
+          period = `Semester 1 TP ${academicYear}`
         } else {
-          startDate = `${selectedYear}-07-01`
-          endDate = `${selectedYear}-12-31`
-          period = `Semester 2 ${selectedYear}`
+          startDate = `${startYear + 1}-01-01`
+          endDate = `${startYear + 1}-06-30`
+          period = `Semester 2 TP ${academicYear}`
         }
       } else if (reportType === 'yearly') {
-        startDate = `${selectedYear}-01-01`
-        endDate = `${selectedYear}-12-31`
-        period = `Tahun ${selectedYear}`
+        // Tahunan = satu tahun ajaran penuh (1 Juli s.d. 30 Juni)
+        const startYear = parseInt(academicYear, 10)
+        startDate = `${startYear}-07-01`
+        endDate = `${startYear + 1}-06-30`
+        period = `Tahun Ajaran ${academicYear}`
       }
 
       setPeriodLabel(period)
@@ -146,14 +180,22 @@ export const JournalReport = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Rekap Jurnal Mengajar</h1>
-        <p className="text-gray-600 mt-2">Laporan rekap jurnal mengajar per periode</p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Rekap Jurnal Mengajar</h1>
+          <p className="text-gray-600 mt-2">Laporan rekap jurnal mengajar per periode</p>
+        </div>
+        <span
+          className="px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 text-sm font-semibold whitespace-nowrap"
+          data-testid="chip-tp"
+        >
+          TP {academicYear}
+        </span>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="bg-white rounded-lg shadow-md p-4 md:p-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Class Selection */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Kelas *</label>
@@ -163,12 +205,23 @@ export const JournalReport = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Pilih Kelas</option>
-              {classes.map((cls) => (
+              {tpClasses.list.map((cls) => (
                 <option key={cls.id} value={cls.id}>
                   {cls.name} - Kelas {cls.grade}
                 </option>
               ))}
             </select>
+            {tpClasses.list.length === 0 && (
+              <p className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5">
+                Belum ada kelas untuk TP {academicYear}. Pilih TP lain di kanan atas, atau atur
+                tahun ajaran kelas di menu Buku Absensi Siswa (Kelola Kelas).
+              </p>
+            )}
+            {tpClasses.legacyFallback && (
+              <p className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5">
+                Kelas belum diatur tahun ajarannya, jadi semua kelas ditampilkan sebagai TP {academicYear}.
+              </p>
+            )}
           </div>
 
           {/* Report Type */}
@@ -199,45 +252,20 @@ export const JournalReport = () => {
           )}
 
           {reportType === 'semester' && (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Semester *</label>
-                <select
-                  value={selectedSemester}
-                  onChange={(e) => setSelectedSemester(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="1">Semester 1 (Jan-Jun)</option>
-                  <option value="2">Semester 2 (Jul-Des)</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tahun *</label>
-                <input
-                  type="number"
-                  value={selectedYear}
-                  onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                  min="2000"
-                  max="2100"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </>
-          )}
-
-          {reportType === 'yearly' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tahun *</label>
-              <input
-                type="number"
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                min="2000"
-                max="2100"
+              <label className="block text-sm font-medium text-gray-700 mb-1">Semester *</label>
+              <select
+                value={selectedSemester}
+                onChange={(e) => setSelectedSemester(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              >
+                <option value="1">Semester 1 (Jul-Des {academicYear.split('/')[0]})</option>
+                <option value="2">Semester 2 (Jan-Jun {academicYear.split('/')[1]})</option>
+              </select>
             </div>
           )}
+
+          {/* Untuk periode Tahunan, rentang otomatis satu TP penuh (1 Jul - 30 Jun) */}
 
           {/* Generate Button */}
           <div className="flex items-end">

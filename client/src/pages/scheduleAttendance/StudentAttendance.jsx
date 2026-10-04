@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useNotification } from '../../context/NotificationContext'
 import useStudentAttendance from '../../hooks/useStudentAttendance'
+import { useAcademicYear } from '../../context/AcademicYearContext'
 import ImportModal from '../../components/ImportModal'
 import { api } from '../../lib/api'
 import { exportAttendanceToExcel, exportAttendanceToPDF, printAttendance } from '../../utils/exportAttendance'
@@ -9,6 +10,7 @@ import { exportAttendanceToExcel, exportAttendanceToPDF, printAttendance } from 
 export const StudentAttendance = () => {
   const location = useLocation()
   const { showNotification } = useNotification()
+  const { availableYears, currentAcademicYear } = useAcademicYear()
   const {
     attendance,
     loading,
@@ -156,11 +158,11 @@ export const StudentAttendance = () => {
       })
     } else {
       setEditingClassId(null)
-      const currentYear = new Date().getFullYear()
+      // TP default = tahun ajaran yang sedang berjalan (mulai Juli, bukan tahun kalender)
       setClassFormData({
         name: '',
         grade: 1,
-        academic_year: `${currentYear}/${currentYear + 1}`,
+        academic_year: currentAcademicYear,
         total_students: 0,
         wali_kelas: '',
         ruang_kelas: '',
@@ -760,13 +762,21 @@ export const StudentAttendance = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Tahun Ajaran
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={classFormData.academic_year ?? ''}
                     onChange={(e) => setClassFormData({ ...classFormData, academic_year: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="2024/2025"
-                  />
+                  >
+                    <option value="">Pilih Tahun Ajaran</option>
+                    {availableYears.map((year) => (
+                      <option key={year} value={year}>
+                        TP {year}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Menentukan TP mana data kelas ini tampil di Dashboard dan Rekap
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">

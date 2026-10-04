@@ -58,6 +58,16 @@ konsisten, gerak minimal (transisi hover dan feedback notifikasi saja).
   regulasi yang mendasari fitur; hanya teks nyata, tanpa angka palsu.
 - **Ikon**: FontAwesome, dipilih karena relevan dengan isi (medal untuk lomba,
   clock untuk jadwal); bukan ikon generik sparkle/magic.
+- **Pemilih Tahun Ajaran (TP)**: dropdown tetap di Header (tombol `min-h-[44px]`
+  berikon kalender, teks `TP 2026/2027`). TP disimpan di
+  `AcademicYearContext` + localStorage; Tahun ajaran Indonesia mulai Juli.
+  Dashboard dan semua Rekap (monev) wajib mengikuti TP terpilih; daftar pilihan
+  bertambah otomatis dari nilai `academic_year` kelas. Kelas tanpa tahun ajaran
+  dianggap milik TP berjalan dan diberi catatan kuning, bukan disimpan diam-diam.
+- **Grafik dashboard**: semua angka dan persentase dihitung dari data API
+  (absensi, nilai, jurnal) untuk TP terpilih. Dilarang keras menaruh data contoh
+  hardcode. Kartu grafik wajib punya state kosong ("Belum ada catatan absensi
+  pada rentang TP ini") dan subtitle yang menjelaskan sumber angka.
 
 ## Bahasa UI
 

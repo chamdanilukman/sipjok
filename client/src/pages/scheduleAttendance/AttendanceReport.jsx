@@ -1,8 +1,15 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useNotification } from '../../context/NotificationContext'
 import useStudentAttendance from '../../hooks/useStudentAttendance'
 import { api } from '../../lib/api'
+import { useAcademicYear } from '../../context/AcademicYearContext'
 import { exportAttendanceReportToExcel, exportAttendanceReportToPDF } from '../../utils/exportAttendance'
+
+// Server menyimpan status lowercase 'alpa'; 'alpha' dari data lama ikut dinormalisasi
+const normStatus = (s) => {
+  const v = String(s || '').toLowerCase()
+  return v === 'alpha' ? 'alpa' : v
+}
 
 export const AttendanceReport = () => {
   const { showNotification } = useNotification()
@@ -12,6 +19,7 @@ export const AttendanceReport = () => {
     loadAttendanceByDateRange,
     loadClasses: loadClassesHook,
   } = useStudentAttendance()
+  const { academicYear, registerClassYears, currentAcademicYear } = useAcademicYear()
 
   const [userId, setUserId] = useState(null)
   const [classes, setClasses] = useState([])
@@ -19,7 +27,6 @@ export const AttendanceReport = () => {
   const [reportType, setReportType] = useState('monthly') // monthly, semester, yearly
   const [selectedMonth, setSelectedMonth] = useState('')
   const [selectedSemester, setSelectedSemester] = useState('1')
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [reportData, setReportData] = useState([])
   const [summary, setSummary] = useState(null)
 
@@ -50,13 +57,31 @@ export const AttendanceReport = () => {
     try {
       const data = await loadClassesHook()
       setClasses(data || [])
-      if (data && data.length > 0) {
-        setSelectedClass(data[0].id)
-      }
+      registerClassYears(data)
     } catch (err) {
       showNotification('Gagal memuat data kelas', 'error')
     }
   }
+
+  // Kelas milik TP terpilih; kelas lama tanpa tahun ajaran dianggap TP berjalan
+  const tpClasses = useMemo(() => {
+    const yearOf = (c) => String(c.academic_year || '').trim()
+    let list = classes.filter((c) => yearOf(c) === academicYear)
+    const legacyFallback =
+      list.length === 0 &&
+      academicYear === currentAcademicYear &&
+      classes.length > 0 &&
+      !classes.some((c) => yearOf(c))
+    if (legacyFallback) list = classes
+    return { list, legacyFallback }
+  }, [classes, academicYear, currentAcademicYear])
+
+  // Saat TP berganti, pilihan kelas direset bila kelasnya bukan milik TP baru
+  useEffect(() => {
+    if (selectedClass && !tpClasses.list.some((c) => c.id === selectedClass)) {
+      setSelectedClass(tpClasses.list[0]?.id || '')
+    }
+  }, [tpClasses, selectedClass])
 
   const generateReport = async () => {
     if (!selectedClass) {
@@ -74,18 +99,21 @@ export const AttendanceReport = () => {
         startDate = `${year}-${month}-01`
         endDate = `${year}-${month}-${String(lastDay).padStart(2, '0')}`
       } else if (reportType === 'semester') {
-        // Semester 1: Jan-Jun, Semester 2: Jul-Dec
+        // Semester mengikuti TP terpilih: Semester 1 = Jul-Des tahun awal,
+        // Semester 2 = Jan-Jun tahun berikutnya
+        const startYear = parseInt(academicYear, 10)
         if (selectedSemester === '1') {
-          startDate = `${selectedYear}-01-01`
-          endDate = `${selectedYear}-06-30`
+          startDate = `${startYear}-07-01`
+          endDate = `${startYear}-12-31`
         } else {
-          startDate = `${selectedYear}-07-01`
-          endDate = `${selectedYear}-12-31`
+          startDate = `${startYear + 1}-01-01`
+          endDate = `${startYear + 1}-06-30`
         }
       } else if (reportType === 'yearly') {
-        // Yearly: Jan 1 to Dec 31
-        startDate = `${selectedYear}-01-01`
-        endDate = `${selectedYear}-12-31`
+        // Tahunan = satu tahun ajaran penuh (1 Juli s.d. 30 Juni)
+        const startYear = parseInt(academicYear, 10)
+        startDate = `${startYear}-07-01`
+        endDate = `${startYear + 1}-06-30`
       }
 
       // Load attendance data for date range
@@ -95,9 +123,10 @@ export const AttendanceReport = () => {
       const studentMap = new Map()
 
       attendanceRecords.forEach((record) => {
+        // Relasi API bernama `student` (bukan `students`)
         const studentId = record.student_id
-        const studentName = record.students?.name || 'Unknown'
-        const studentNis = record.students?.nis || '-'
+        const studentName = record.student?.name || 'Unknown'
+        const studentNis = record.student?.nis || '-'
 
         if (!studentMap.has(studentId)) {
           studentMap.set(studentId, {
@@ -115,10 +144,10 @@ export const AttendanceReport = () => {
         const studentData = studentMap.get(studentId)
         studentData.total++
 
-        if (record.status === 'hadir') studentData.hadir++
-        else if (record.status === 'sakit') studentData.sakit++
-        else if (record.status === 'izin') studentData.izin++
-        else if (record.status === 'alpha') studentData.alpha++
+        if (normStatus(record.status) === 'hadir') studentData.hadir++
+        else if (normStatus(record.status) === 'sakit') studentData.sakit++
+        else if (normStatus(record.status) === 'izin') studentData.izin++
+        else if (normStatus(record.status) === 'alpa') studentData.alpha++
       })
 
       const reportArray = Array.from(studentMap.values())
@@ -140,10 +169,10 @@ export const AttendanceReport = () => {
 
       // Calculate summary
       const totalRecords = attendanceRecords.length
-      const totalHadir = attendanceRecords.filter(r => r.status === 'hadir').length
-      const totalSakit = attendanceRecords.filter(r => r.status === 'sakit').length
-      const totalIzin = attendanceRecords.filter(r => r.status === 'izin').length
-      const totalAlpha = attendanceRecords.filter(r => r.status === 'alpha').length
+      const totalHadir = attendanceRecords.filter(r => normStatus(r.status) === 'hadir').length
+      const totalSakit = attendanceRecords.filter(r => normStatus(r.status) === 'sakit').length
+      const totalIzin = attendanceRecords.filter(r => normStatus(r.status) === 'izin').length
+      const totalAlpha = attendanceRecords.filter(r => normStatus(r.status) === 'alpa').length
 
       setSummary({
         totalRecords,
@@ -176,9 +205,9 @@ export const AttendanceReport = () => {
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
       periodLabel = `${monthNames[parseInt(month) - 1]} ${year}`
     } else if (reportType === 'semester') {
-      periodLabel = `Semester ${selectedSemester} - ${selectedYear}`
+      periodLabel = `Semester ${selectedSemester} TP ${academicYear}`
     } else {
-      periodLabel = `Tahun ${selectedYear}`
+      periodLabel = `Tahun Ajaran ${academicYear}`
     }
 
     if (format === 'excel') {
@@ -199,11 +228,17 @@ export const AttendanceReport = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Rekap Absensi</h1>
           <p className="text-gray-600">Rekap kehadiran siswa per periode</p>
         </div>
+        <span
+          className="px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 text-sm font-semibold whitespace-nowrap"
+          data-testid="chip-tp"
+        >
+          TP {academicYear}
+        </span>
       </div>
 
       {error && (
@@ -213,8 +248,8 @@ export const AttendanceReport = () => {
       )}
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="bg-white rounded-lg shadow-md p-4 md:p-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Class Selection */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Kelas</label>
@@ -224,12 +259,23 @@ export const AttendanceReport = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Pilih Kelas</option>
-              {classes.map((cls) => (
+              {tpClasses.list.map((cls) => (
                 <option key={cls.id} value={cls.id}>
                   {cls.name} - Kelas {cls.grade}
                 </option>
               ))}
             </select>
+            {tpClasses.list.length === 0 && (
+              <p className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5">
+                Belum ada kelas untuk TP {academicYear}. Pilih TP lain di kanan atas, atau atur
+                tahun ajaran kelas di menu Buku Absensi Siswa (Kelola Kelas).
+              </p>
+            )}
+            {tpClasses.legacyFallback && (
+              <p className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5">
+                Kelas belum diatur tahun ajarannya, jadi semua kelas ditampilkan sebagai TP {academicYear}.
+              </p>
+            )}
           </div>
 
           {/* Report Type */}
@@ -259,48 +305,22 @@ export const AttendanceReport = () => {
             </div>
           )}
 
-          {/* Semester Selection (for semester) */}
+          {/* Semester Selection (for semester) — rentang mengikuti TP terpilih */}
           {reportType === 'semester' && (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Semester</label>
-                <select
-                  value={selectedSemester}
-                  onChange={(e) => setSelectedSemester(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="1">Semester 1 (Jan-Jun)</option>
-                  <option value="2">Semester 2 (Jul-Des)</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tahun</label>
-                <input
-                  type="number"
-                  value={selectedYear}
-                  onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                  min="2000"
-                  max="2100"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </>
-          )}
-
-          {/* Year Selection (for yearly) */}
-          {reportType === 'yearly' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tahun</label>
-              <input
-                type="number"
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                min="2000"
-                max="2100"
+              <label className="block text-sm font-medium text-gray-700 mb-1">Semester</label>
+              <select
+                value={selectedSemester}
+                onChange={(e) => setSelectedSemester(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              >
+                <option value="1">Semester 1 (Jul-Des {academicYear.split('/')[0]})</option>
+                <option value="2">Semester 2 (Jan-Jun {academicYear.split('/')[1]})</option>
+              </select>
             </div>
           )}
+
+          {/* Untuk periode Tahunan, rentang otomatis satu TP penuh (1 Jul - 30 Jun) */}
 
           {/* Generate Button */}
           <div className="flex items-end">
@@ -355,9 +375,9 @@ export const AttendanceReport = () => {
       {/* Report Table */}
       {reportData.length > 0 && (
         <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Rekap Per Siswa</h2>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => handleExport('excel')}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"

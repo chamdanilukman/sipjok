@@ -2,13 +2,17 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useTeacherProfile from '../hooks/useTeacherProfile'
 import { signOut, getCurrentUserId } from '../config/auth'
+import { useAcademicYear } from '../context/AcademicYearContext'
 
 export const Header = ({ onMenuClick }) => {
   const navigate = useNavigate()
   const { profile, loadProfile } = useTeacherProfile()
+  const { academicYear, setAcademicYear, availableYears, currentAcademicYear } = useAcademicYear()
   const [userId, setUserId] = useState(null)
   const [showDropdown, setShowDropdown] = useState(false)
+  const [showTpMenu, setShowTpMenu] = useState(false)
   const dropdownRef = useRef(null)
+  const tpMenuRef = useRef(null)
 
   // Get current user and load profile
   useEffect(() => {
@@ -30,10 +34,24 @@ export const Header = ({ onMenuClick }) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowDropdown(false)
       }
+      if (tpMenuRef.current && !tpMenuRef.current.contains(event.target)) {
+        setShowTpMenu(false)
+      }
+    }
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setShowDropdown(false)
+        setShowTpMenu(false)
+      }
     }
 
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleEscape)
+    }
   }, [])
 
   const handleLogout = async () => {
@@ -81,8 +99,65 @@ export const Header = ({ onMenuClick }) => {
           </h1>
         </div>
 
-        {/* Right side - User menu */}
-        <div className="flex items-center gap-2 sm:gap-4">
+        {/* Right side - Tahun ajaran + User menu */}
+        <div className="flex items-center gap-1 sm:gap-2">
+          {/* Pilihan Tahun Ajaran (TP) — dipakai filter Dashboard & Rekap */}
+          <div className="relative" ref={tpMenuRef}>
+            <button
+              onClick={() => setShowTpMenu(!showTpMenu)}
+              className="flex items-center gap-2 px-2 sm:px-3 min-h-[44px] rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors"
+              title="Pilih tahun ajaran"
+              data-testid="button-tahun-ajaran"
+            >
+              <i className="fas fa-calendar-alt text-blue-600"></i>
+              <span className="text-sm font-semibold text-gray-700 whitespace-nowrap">
+                <span className="hidden sm:inline">TP </span>{academicYear}
+              </span>
+              <i className={`fas fa-chevron-down text-xs text-gray-500 transition-transform duration-200 ${showTpMenu ? 'rotate-180' : ''}`}></i>
+            </button>
+
+            {showTpMenu && (
+              <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                <div className="px-4 py-3 border-b border-gray-200">
+                  <p className="text-sm font-semibold text-gray-900">Tahun Ajaran</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Data Dashboard &amp; Rekap mengikuti TP yang dipilih
+                  </p>
+                </div>
+                <div className="py-2 max-h-64 overflow-y-auto">
+                  {availableYears.map((year) => (
+                    <button
+                      key={year}
+                      onClick={() => {
+                        setAcademicYear(year)
+                        setShowTpMenu(false)
+                      }}
+                      className={`w-full text-left px-4 py-2.5 text-sm flex items-center justify-between hover:bg-gray-100 transition-colors ${
+                        year === academicYear ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700'
+                      }`}
+                      data-testid={`tp-option-${year}`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <span>TP {year}</span>
+                        {year === currentAcademicYear && (
+                          <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-800 text-xs font-medium">
+                            Berjalan
+                          </span>
+                        )}
+                      </span>
+                      {year === academicYear && <i className="fas fa-check text-blue-600"></i>}
+                    </button>
+                  ))}
+                </div>
+                <div className="px-4 py-2 border-t border-gray-200">
+                  <p className="text-xs text-gray-400">
+                    Daftar TP ikut bertambah saat kelas dibuat dengan tahun ajaran baru
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Notifications (Touch-friendly) */}
           <button 
             className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"

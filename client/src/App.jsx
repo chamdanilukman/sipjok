@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { NotificationProvider } from './context/NotificationContext'
 import { ProfileProvider } from './context/ProfileContext'
+import { AcademicYearProvider } from './context/AcademicYearContext'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 
@@ -60,6 +61,7 @@ function App() {
   return (
     <Router>
       <NotificationProvider>
+        <AcademicYearProvider>
         <ProfileProvider>
           <Suspense fallback={<PageLoader />}>
             <Routes>
@@ -111,6 +113,7 @@ function App() {
             </Routes>
           </Suspense>
         </ProfileProvider>
+        </AcademicYearProvider>
       </NotificationProvider>
     </Router>
   )
