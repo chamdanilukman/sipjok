@@ -165,9 +165,40 @@ export const TeacherProfile = () => {
         <p className="text-gray-600 mt-2">Kelola data pribadi, kualifikasi, dan sertifikasi guru</p>
       </div>
 
-      {error && (
+      {loading && !profile && (
+        <div className="bg-white rounded-lg shadow-md p-8 text-center">
+          <i className="fas fa-spinner fa-spin text-2xl text-blue-600 mb-2"></i>
+          <p className="text-gray-600">Memuat profil...</p>
+        </div>
+      )}
+
+      {error && !profile && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center justify-between gap-3">
+          <p className="text-red-800">
+            <i className="fas fa-exclamation-circle mr-2"></i>
+            Gagal memuat profil: {error}
+          </p>
+          <button
+            type="button"
+            onClick={() => userId && loadProfile(userId)}
+            className="shrink-0 px-3 py-2 bg-white border border-red-300 rounded-lg text-red-700 hover:bg-red-100 text-sm font-medium"
+          >
+            Coba Lagi
+          </button>
+        </div>
+      )}
+
+      {error && profile && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800">{error}</p>
+        </div>
+      )}
+
+      {profile && !profile.name && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-900">
+          <i className="fas fa-circle-info mr-2 text-amber-600"></i>
+          Nama lengkap belum diisi. Nama ini yang tampil di header dan pada cetakan dokumen seperti modul ajar, jadi
+          isi dan simpan ya.
         </div>
       )}
 
@@ -241,6 +272,7 @@ export const TeacherProfile = () => {
                 value={formData.name}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Nama lengkap beserta gelar, contoh: Agus Afifudin, S.Pd."
                 required
               />
             </div>

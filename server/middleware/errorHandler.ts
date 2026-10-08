@@ -35,7 +35,7 @@ export function errorHandler(
   // Log error (in production, you might want to use a logging service)
   console.error('Error:', {
     message: err.message,
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+    stack: err.stack,
     path: req.path,
     method: req.method,
   });
@@ -77,12 +77,11 @@ export function errorHandler(
     return;
   }
 
-  // Default error response
+  // Default error response. Pesan asli ikut dikirim supaya galat bisa
+  // didiagnosis dari UI/API tanpa harus membuka log VPS (aplikasi privat guru).
   res.status(500).json({
     error: 'Internal Server Error',
-    message: process.env.NODE_ENV === 'development' 
-      ? err.message 
-      : 'An unexpected error occurred',
+    message: err.message || 'An unexpected error occurred',
   });
 }
 

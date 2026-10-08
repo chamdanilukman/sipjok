@@ -660,6 +660,14 @@ export const studentReflectionsRelations = relations(studentReflections, ({ one 
 // ZOD SCHEMAS FOR VALIDATION
 // ============================================================================
 
+// Kolom tanggal opsional: form HTML mengirim '' saat kosong, padahal PostgreSQL
+// menolak string kosong untuk tipe date (menyebabkan error 500). Normalisasi
+// '' menjadi null supaya mengosongkan tanggal benar-benar menghapus nilainya.
+const emptyToNullDate = z.preprocess(
+  (val) => (typeof val === 'string' && val.trim() === '' ? null : val),
+  z.string().nullable().optional()
+);
+
 // Users
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -668,7 +676,10 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export const selectUserSchema = createSelectSchema(users);
 
 // Teacher Profile
-export const insertTeacherProfileSchema = createInsertSchema(teacherProfile).omit({
+export const insertTeacherProfileSchema = createInsertSchema(teacherProfile, {
+  tanggal_lahir: emptyToNullDate,
+  tmt: emptyToNullDate,
+}).omit({
   user_id: true,
   id: true,
   created_at: true,
@@ -686,7 +697,9 @@ export const insertClassSchema = createInsertSchema(classes).omit({
 export const selectClassSchema = createSelectSchema(classes);
 
 // Students
-export const insertStudentSchema = createInsertSchema(students).omit({
+export const insertStudentSchema = createInsertSchema(students, {
+  birth_date: emptyToNullDate,
+}).omit({
   id: true,
   created_at: true,
   updated_at: true,
@@ -760,6 +773,7 @@ export const selectExamQuestionSchema = createSelectSchema(examQuestions);
 export const insertStudentGradeSchema = createInsertSchema(studentGrades, {
   score: z.coerce.string(),
   max_score: z.coerce.string(),
+  assessment_date: emptyToNullDate,
 }).omit({
   teacher_id: true,
   id: true,
@@ -778,7 +792,9 @@ export const insertCurriculumDocumentSchema = createInsertSchema(curriculumDocum
 export const selectCurriculumDocumentSchema = createSelectSchema(curriculumDocuments);
 
 // Calendar Events
-export const insertCalendarEventSchema = createInsertSchema(calendarEvents).omit({
+export const insertCalendarEventSchema = createInsertSchema(calendarEvents, {
+  tanggal_selesai: emptyToNullDate,
+}).omit({
   user_id: true,
   id: true,
   created_at: true,
@@ -832,7 +848,9 @@ export const insertExtracurricularScheduleSchema = createInsertSchema(extracurri
 export const selectExtracurricularScheduleSchema = createSelectSchema(extracurricularSchedules);
 
 // Competition Records
-export const insertCompetitionRecordSchema = createInsertSchema(competitionRecords).omit({
+export const insertCompetitionRecordSchema = createInsertSchema(competitionRecords, {
+  tanggal_lomba: emptyToNullDate,
+}).omit({
   teacher_id: true,
   id: true,
   created_at: true,
