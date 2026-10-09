@@ -18,6 +18,7 @@ const DataKelas = lazy(() => import('./pages/dataMaster/DataKelas'))
 
 // Profile & Identity
 const TeacherProfile = lazy(() => import('./pages/profile/TeacherProfile'))
+const ChangePassword = lazy(() => import('./pages/profile/ChangePassword'))
 const SchoolCurriculum = lazy(() => import('./pages/profile/SchoolCurriculum'))
 const AcademicCalendar = lazy(() => import('./pages/profile/AcademicCalendar'))
 
@@ -79,6 +80,7 @@ function App() {
 
                 {/* Profile & Identity */}
                 <Route path="/profile/teacher-profile" element={<ProtectedRoute><TeacherProfile /></ProtectedRoute>} />
+                <Route path="/profile/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
                 <Route path="/profile/school-curriculum" element={<ProtectedRoute><SchoolCurriculum /></ProtectedRoute>} />
                 <Route path="/profile/academic-calendar" element={<ProtectedRoute><AcademicCalendar /></ProtectedRoute>} />
 
